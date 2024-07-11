@@ -8,6 +8,7 @@ use std::{
 };
 
 use bevy::{
+    color::palettes::css::GREEN,
     prelude::*,
     winit::{UpdateMode::Continuous, WinitSettings},
 };
@@ -75,7 +76,7 @@ impl SimpleBoxPlugin {
                 commands.spawn(PlayerBundle::new(
                     ClientId::SERVER,
                     Vec2::ZERO,
-                    Color::linear_rgb(0.0, 1.0, 0.0),
+                    GREEN.into(),
                 ));
             }
             Cli::Server { port } => {
@@ -113,7 +114,7 @@ impl SimpleBoxPlugin {
                 commands.spawn(PlayerBundle::new(
                     ClientId::SERVER,
                     Vec2::ZERO,
-                    Color::linear_rgb(0.0, 1.0, 0.0),
+                    GREEN.into(),
                 ));
             }
             Cli::Client { port, ip } => {
