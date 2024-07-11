@@ -172,7 +172,7 @@ impl SimpleBoxPlugin {
                     commands.spawn(PlayerBundle::new(
                         *client_id,
                         Vec2::ZERO,
-                        Color::rgb(r, g, b),
+                        Color::srgb(r, g, b),
                     ));
                 }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
