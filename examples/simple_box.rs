@@ -75,7 +75,7 @@ impl SimpleBoxPlugin {
                 commands.spawn(PlayerBundle::new(
                     ClientId::SERVER,
                     Vec2::ZERO,
-                    Color::GREEN,
+                    Color::linear_rgb(0.0, 1.0, 0.0),
                 ));
             }
             Cli::Server { port } => {
@@ -113,7 +113,7 @@ impl SimpleBoxPlugin {
                 commands.spawn(PlayerBundle::new(
                     ClientId::SERVER,
                     Vec2::ZERO,
-                    Color::GREEN,
+                    Color::linear_rgb(0.0, 1.0, 0.0),
                 ));
             }
             Cli::Client { port, ip } => {
