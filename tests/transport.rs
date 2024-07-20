@@ -47,6 +47,10 @@ fn connect_disconnect() {
 
     let replicon_client = client_app.world().resource::<RepliconClient>();
     assert!(replicon_client.is_disconnected());
+
+    server_app.world_mut().remove_resource::<RenetServer>();
+    server_app.update();
+    assert!(!server_app.world().resource::<RepliconServer>().is_running());
 }
 
 #[test]
