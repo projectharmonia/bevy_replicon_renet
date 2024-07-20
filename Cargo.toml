@@ -18,7 +18,7 @@ keywords = [
 ]
 categories = ["game-development", "network-programming"]
 license = "MIT OR Apache-2.0"
-include = ["/src", "/tests", "LICENSE*"]
+include = ["/src", "/tests", "/examples", "LICENSE*"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["-Zunstable-options", "--cfg", "docsrs"]
