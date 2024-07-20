@@ -63,6 +63,7 @@ let connection_config = ConnectionConfig {
 For a full example of how to initialize a server or client see the example in the
 repository.
 */
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(feature = "client")]
 pub mod client;

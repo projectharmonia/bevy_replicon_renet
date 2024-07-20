@@ -20,6 +20,10 @@ categories = ["game-development", "network-programming"]
 license = "MIT OR Apache-2.0"
 include = ["/src", "/tests", "LICENSE*"]
 
+[package.metadata.docs.rs]
+rustdoc-args = ["-Zunstable-options", "--cfg", "docsrs"]
+all-features = true
+
 [dependencies]
 bevy_replicon = { version = "0.27", default-features = false }
 bevy_renet = { version = "0.0.12", default-features = false }
@@ -48,4 +52,12 @@ renet_transport = ["bevy_renet/transport"]
 
 [[test]]
 name = "transport"
+required-features = ["server", "client", "renet_transport"]
+
+[[example]]
+name = "simple_box"
+required-features = ["server", "client", "renet_transport"]
+
+[[example]]
+name = "tic_tac_toe"
 required-features = ["server", "client", "renet_transport"]
