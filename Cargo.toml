@@ -22,7 +22,7 @@ include = ["/src", "/tests", "LICENSE*"]
 
 [dependencies]
 bevy_replicon = { version = "0.27" }
-bevy_renet = { git = "https://github.com/raffaeleragni/renet", rev = "f36762ca7cf338300159be6206c191928a019f41", default-features = false }
+bevy_renet = { version = "0.0.12", default-features = false }
 bevy = { version = "0.14", default-features = false }
 
 [dev-dependencies]
