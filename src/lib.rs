@@ -29,8 +29,9 @@ If the `renet_transport` feature is enabled, netcode plugins will also be automa
 ## Server and client creation
 
 To connect to the server or create it, you need to initialize the
-[`RenetClient`] and [`NetcodeClientTransport`] **or**
-[`RenetServer`] and [`NetcodeServerTransport`](renet::transport::NetcodeServerTransport) resources from Renet.
+[`RenetClient`](renet::RenetClient) and [`NetcodeClientTransport`](renet::transport::NetcodeClientTransport) **or**
+[`RenetServer`](renet::RenetServer) and [`NetcodeServerTransport`](renet::transport::NetcodeServerTransport)
+resources from Renet.
 
 Never insert client and server resources in the same app for single-player, it will cause a replication loop.
 
@@ -58,194 +59,41 @@ For a full example of how to initialize a server or client see the example in th
 repository.
 */
 
+#[cfg(feature = "client")]
+pub mod client;
+#[cfg(feature = "server")]
+pub mod server;
+
 pub use bevy_renet::renet;
 #[cfg(feature = "renet_transport")]
 pub use bevy_renet::transport;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use bevy_renet::{RenetClientPlugin, RenetReceive, RenetSend, RenetServerPlugin};
 use bevy_replicon::prelude::*;
-use renet::{ChannelConfig, RenetClient, RenetServer, SendType};
-#[cfg(feature = "renet_transport")]
-use {
-    renet::transport::NetcodeClientTransport,
-    transport::{NetcodeClientPlugin, NetcodeServerPlugin},
-};
+use renet::{ChannelConfig, SendType};
 
-pub struct RepliconRenetServerPlugin;
-
-impl Plugin for RepliconRenetServerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(RenetServerPlugin)
-            .configure_sets(PreUpdate, ServerSet::ReceivePackets.after(RenetReceive))
-            .configure_sets(PostUpdate, ServerSet::SendPackets.before(RenetSend))
-            .add_systems(
-                PreUpdate,
-                (
-                    (
-                        Self::set_running.run_if(resource_added::<RenetServer>),
-                        Self::set_stopped.run_if(resource_removed::<RenetServer>()),
-                        Self::receive_packets.run_if(resource_exists::<RenetServer>),
-                    )
-                        .chain()
-                        .in_set(ServerSet::ReceivePackets),
-                    Self::forward_server_events.in_set(ServerSet::SendEvents),
-                ),
-            )
-            .add_systems(
-                PostUpdate,
-                Self::send_packets
-                    .in_set(ServerSet::SendPackets)
-                    .run_if(resource_exists::<RenetServer>),
-            );
-
-        #[cfg(feature = "renet_transport")]
-        app.add_plugins(NetcodeServerPlugin);
-    }
-}
-
-impl RepliconRenetServerPlugin {
-    fn set_running(mut server: ResMut<RepliconServer>) {
-        server.set_running(true);
-    }
-
-    fn set_stopped(mut server: ResMut<RepliconServer>) {
-        server.set_running(false);
-    }
-
-    fn forward_server_events(
-        mut renet_server_events: EventReader<renet::ServerEvent>,
-        mut server_events: EventWriter<ServerEvent>,
-    ) {
-        for event in renet_server_events.read() {
-            let replicon_event = match event {
-                renet::ServerEvent::ClientConnected { client_id } => ServerEvent::ClientConnected {
-                    client_id: ClientId::new(client_id.raw()),
-                },
-                renet::ServerEvent::ClientDisconnected { client_id, reason } => {
-                    ServerEvent::ClientDisconnected {
-                        client_id: ClientId::new(client_id.raw()),
-                        reason: reason.to_string(),
-                    }
-                }
-            };
-
-            server_events.send(replicon_event);
-        }
-    }
-
-    fn receive_packets(
-        connected_clients: Res<ConnectedClients>,
-        channels: Res<RepliconChannels>,
-        mut renet_server: ResMut<RenetServer>,
-        mut replicon_server: ResMut<RepliconServer>,
-    ) {
-        for client_id in connected_clients.iter_client_ids() {
-            let renet_client_id = renet::ClientId::from_raw(client_id.get());
-            for channel_id in 0..channels.client_channels().len() as u8 {
-                while let Some(message) = renet_server.receive_message(renet_client_id, channel_id)
-                {
-                    replicon_server.insert_received(client_id, channel_id, message);
-                }
-            }
-        }
-    }
-
-    fn send_packets(
-        mut renet_server: ResMut<RenetServer>,
-        mut replicon_server: ResMut<RepliconServer>,
-    ) {
-        for (client_id, channel_id, message) in replicon_server.drain_sent() {
-            let client_id = renet::ClientId::from_raw(client_id.get());
-            renet_server.send_message(client_id, channel_id, message)
-        }
-    }
-}
-
-pub struct RepliconRenetClientPlugin;
-
-impl Plugin for RepliconRenetClientPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(RenetClientPlugin)
-            .configure_sets(PreUpdate, ClientSet::ReceivePackets.after(RenetReceive))
-            .configure_sets(PostUpdate, ClientSet::SendPackets.before(RenetSend))
-            .add_systems(
-                PreUpdate,
-                (
-                    Self::set_connecting.run_if(bevy_renet::client_connecting),
-                    Self::set_disconnected.run_if(bevy_renet::client_just_disconnected),
-                    Self::set_connected.run_if(bevy_renet::client_just_connected),
-                    Self::receive_packets.run_if(bevy_renet::client_connected),
-                )
-                    .chain()
-                    .in_set(ClientSet::ReceivePackets),
-            )
-            .add_systems(
-                PostUpdate,
-                Self::send_packets
-                    .in_set(ClientSet::SendPackets)
-                    .run_if(bevy_renet::client_connected),
-            );
-
-        #[cfg(feature = "renet_transport")]
-        app.add_plugins(NetcodeClientPlugin);
-    }
-}
-
-impl RepliconRenetClientPlugin {
-    fn set_disconnected(mut client: ResMut<RepliconClient>) {
-        client.set_status(RepliconClientStatus::Disconnected);
-    }
-
-    fn set_connecting(mut client: ResMut<RepliconClient>) {
-        if client.status() != RepliconClientStatus::Connecting {
-            client.set_status(RepliconClientStatus::Connecting);
-        }
-    }
-
-    fn set_connected(
-        mut client: ResMut<RepliconClient>,
-        #[cfg(feature = "renet_transport")] transport: Res<NetcodeClientTransport>,
-    ) {
-        // In renet only transport knows the ID.
-        // TODO: Pending renet issue https://github.com/lucaspoffo/renet/issues/153
-        #[cfg(feature = "renet_transport")]
-        let client_id = Some(ClientId::new(transport.client_id().raw()));
-        #[cfg(not(feature = "renet_transport"))]
-        let client_id = None;
-
-        client.set_status(RepliconClientStatus::Connected { client_id });
-    }
-
-    fn receive_packets(
-        channels: Res<RepliconChannels>,
-        mut renet_client: ResMut<RenetClient>,
-        mut replicon_client: ResMut<RepliconClient>,
-    ) {
-        for channel_id in 0..channels.server_channels().len() as u8 {
-            while let Some(message) = renet_client.receive_message(channel_id) {
-                replicon_client.insert_received(channel_id, message);
-            }
-        }
-    }
-
-    fn send_packets(
-        mut renet_client: ResMut<RenetClient>,
-        mut replicon_client: ResMut<RepliconClient>,
-    ) {
-        for (channel_id, message) in replicon_client.drain_sent() {
-            renet_client.send_message(channel_id, message)
-        }
-    }
-}
+#[cfg(feature = "client")]
+use client::RepliconRenetClientPlugin;
+#[cfg(feature = "server")]
+use server::RepliconRenetServerPlugin;
 
 pub struct RepliconRenetPlugins;
 
 impl PluginGroup for RepliconRenetPlugins {
     fn build(self) -> PluginGroupBuilder {
-        PluginGroupBuilder::start::<Self>()
-            .add(RepliconRenetServerPlugin)
-            .add(RepliconRenetClientPlugin)
+        let mut group = PluginGroupBuilder::start::<Self>();
+
+        #[cfg(feature = "server")]
+        {
+            group = group.add(RepliconRenetServerPlugin);
+        }
+
+        #[cfg(feature = "client")]
+        {
+            group = group.add(RepliconRenetClientPlugin);
+        }
+
+        group
     }
 }
 

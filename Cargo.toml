@@ -21,7 +21,7 @@ license = "MIT OR Apache-2.0"
 include = ["/src", "/tests", "LICENSE*"]
 
 [dependencies]
-bevy_replicon = { version = "0.27" }
+bevy_replicon = { version = "0.27", default-features = false }
 bevy_renet = { version = "0.0.12", default-features = false }
 bevy = { version = "0.14", default-features = false }
 
@@ -38,7 +38,9 @@ bevy = { version = "0.14", default-features = false, features = [
 ] }
 
 [features]
-default = ["renet_serde", "renet_transport"]
+default = ["client", "server", "renet_serde", "renet_transport"]
+server = ["bevy_replicon/server"]
+client = ["bevy_replicon/client"]
 
 # Re-exports of renet features
 renet_serde = ["bevy_renet/serde"]
@@ -46,4 +48,4 @@ renet_transport = ["bevy_renet/transport"]
 
 [[test]]
 name = "transport"
-required-features = ["renet_transport"]
+required-features = ["server", "client", "renet_transport"]
