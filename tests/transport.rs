@@ -45,7 +45,7 @@ fn connect_disconnect() {
     let connected_clients = server_app.world().resource::<ConnectedClients>();
     assert_eq!(connected_clients.len(), 0);
 
-    let replicon_client = client_app.world_mut().resource_mut::<RepliconClient>();
+    let replicon_client = client_app.world().resource::<RepliconClient>();
     assert!(replicon_client.is_disconnected());
 }
 
