@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `server` and `client` features to disable unneeded funcionality.
+
 ### Changed
 
 - Move to a dedicated repository.
+- Move `RepliconRenetServerPlugin` to `server` module.
+- Move `RepliconRenetClientPlugin` to `client` module.
 
 ## [0.3.0] - 2024-05-26
 
