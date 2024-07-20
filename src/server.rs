@@ -7,6 +7,10 @@ use bevy_renet::{
 };
 use bevy_replicon::prelude::*;
 
+/// Adds renet as server messaging backend.
+///
+/// Initializes [`RenetServerPlugin`], systems that pass data between [`RenetServer`]
+/// and [`RepliconServer`] and translates renet's server events into replicon's.
 pub struct RepliconRenetServerPlugin;
 
 impl Plugin for RepliconRenetServerPlugin {

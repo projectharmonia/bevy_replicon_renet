@@ -21,9 +21,14 @@ use bevy_replicon_renet::RepliconRenetPlugins;
 let mut app = App::new();
 app.add_plugins((MinimalPlugins, RepliconPlugins, RepliconRenetPlugins));
 ```
+If you want to separate the client and server, you can use the `client` and `server` features (both enabled by default),
+which control enabled plugins. These features automatically enable corresponding features in `bevy_replicon`.
+
+It's also possible to do it at runtime via [`PluginGroupBuilder::disable()`].
+For server disable [`RepliconRenetClientPlugin`].
+For client disable [`RepliconRenetServerPlugin`].
 
 Plugins in [`RepliconRenetPlugins`] automatically add `renet` plugins, you don't need to add them.
-
 If the `renet_transport` feature is enabled, netcode plugins will also be automatically added.
 
 ## Server and client creation
@@ -77,6 +82,11 @@ use client::RepliconRenetClientPlugin;
 #[cfg(feature = "server")]
 use server::RepliconRenetServerPlugin;
 
+/// Plugin group for all replicon plugins for renet.
+///
+/// Contains the following:
+/// * [`RepliconRenetServerPlugin`] - with feature `server`.
+/// * [`RepliconRenetClientPlugin`] - with feature `client`.
 pub struct RepliconRenetPlugins;
 
 impl PluginGroup for RepliconRenetPlugins {

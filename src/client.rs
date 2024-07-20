@@ -4,6 +4,10 @@ use bevy_renet::{self, renet::RenetClient, RenetClientPlugin, RenetReceive, Rene
 use bevy_renet::{renet::transport::NetcodeClientTransport, transport::NetcodeClientPlugin};
 use bevy_replicon::prelude::*;
 
+/// Adds renet as client messaging backend.
+///
+/// Initializes [`RenetClientPlugin`] and systems that pass data between
+/// [`RenetClient`] and [`RepliconClient`].
 pub struct RepliconRenetClientPlugin;
 
 impl Plugin for RepliconRenetClientPlugin {
