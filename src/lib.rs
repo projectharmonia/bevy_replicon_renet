@@ -140,11 +140,14 @@ fn create_configs(channels: &[RepliconChannel], default_max_bytes: usize) -> Vec
                 resend_time: channel.resend_time,
             },
         };
-        channel_configs.push(ChannelConfig {
+        let config = ChannelConfig {
             channel_id: index as u8,
             max_memory_usage_bytes: channel.max_bytes.unwrap_or(default_max_bytes),
             send_type,
-        });
+        };
+
+        debug!("creating channel config `{config:?}`");
+        channel_configs.push(config);
     }
     channel_configs
 }
