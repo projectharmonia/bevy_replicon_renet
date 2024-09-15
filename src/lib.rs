@@ -62,6 +62,16 @@ let connection_config = ConnectionConfig {
 
 For a full example of how to initialize a server or client see the example in the
 repository.
+
+## Replicon conditions
+
+The crate updates state of [`RepliconServer`] and [`RepliconClient`] resourced based on
+[`RenetServer`](renet::RenetServer) and [`RenetClient`](renet::RenetServer) in [`PreUpdate`].
+
+This means that [replicon conditions](bevy_replicon::core::common_conditions) won't work in schedules
+like [`Startup`]. As a workaround, you can directly check renet's resources. This may be resolved
+in the future once we have [observers for resources](https://github.com/bevyengine/bevy/issues/12231)
+to immediately react to changes.
 */
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
