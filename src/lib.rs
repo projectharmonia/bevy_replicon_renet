@@ -70,7 +70,7 @@ based on the states of [`RenetServer`](renet::RenetServer) and [`RenetClient`](r
 in [`PreUpdate`].
 
 This means that [replicon conditions](bevy_replicon::core::common_conditions) won't work in schedules
-like [`Startup`]. As a workaround, you can directly check renet's resources. This may be resolved
+like [`Startup`]. As a workaround, you can directly check if renet's resources are present. This may be resolved
 in the future once we have [observers for resources](https://github.com/bevyengine/bevy/issues/12231)
 to immediately react to changes.
 */
