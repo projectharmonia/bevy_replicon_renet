@@ -65,8 +65,9 @@ repository.
 
 ## Replicon conditions
 
-The crate updates state of [`RepliconServer`] and [`RepliconClient`] resourced based on
-[`RenetServer`](renet::RenetServer) and [`RenetClient`](renet::RenetServer) in [`PreUpdate`].
+The crate updates the running state of [`RepliconServer`] and connection state of [`RepliconClient`]
+based on the states of [`RenetServer`](renet::RenetServer) and [`RenetClient`](renet::RenetServer)
+in [`PreUpdate`].
 
 This means that [replicon conditions](bevy_replicon::core::common_conditions) won't work in schedules
 like [`Startup`]. As a workaround, you can directly check renet's resources. This may be resolved
