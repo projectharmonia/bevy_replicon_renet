@@ -33,27 +33,6 @@ jobs:
           cargo fmt --all --check
           taplo fmt --check
 
-  feature-combinations:
-    name: Feature combinations
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@v4
-
-      - name: Instal stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache crates
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Cargo Hack
-        run: cargo install cargo-hack
-
-      - name: Check feature combinations
-        run: cargo hack check --feature-powerset
-        env:
-          RUSTFLAGS: -Aunused -Dwarnings
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -89,6 +68,27 @@ jobs:
       - name: Test doc
         run: cargo test --doc
 
+  feature-combinations:
+    name: Feature combinations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - name: Instal stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache crates
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Cargo Hack
+        run: cargo install cargo-hack
+
+      - name: Check feature combinations
+        run: cargo hack check --feature-powerset
+        env:
+          RUSTFLAGS: -Aunused -Dwarnings
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -121,7 +121,7 @@ jobs:
   codecov:
     name: Upload to Codecov
     if: github.actor != 'dependabot[bot]'
-    needs: [format, lint, doctest, test]
+    needs: [format, lint, doctest, feature-combinations, test]
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
