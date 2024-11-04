@@ -7,6 +7,8 @@ use bevy_renet::{
 };
 use bevy_replicon::prelude::*;
 
+use crate::{ClientIdExt, RenetClientIdExt};
+
 /// Adds renet as server messaging backend.
 ///
 /// Initializes [`RenetServerPlugin`], systems that pass data between [`RenetServer`]
@@ -59,11 +61,11 @@ impl RepliconRenetServerPlugin {
         for event in renet_server_events.read() {
             let replicon_event = match event {
                 renet::ServerEvent::ClientConnected { client_id } => ServerEvent::ClientConnected {
-                    client_id: ClientId::new(client_id.raw()),
+                    client_id: client_id.as_client_id(),
                 },
                 renet::ServerEvent::ClientDisconnected { client_id, reason } => {
                     ServerEvent::ClientDisconnected {
-                        client_id: ClientId::new(client_id.raw()),
+                        client_id: client_id.as_client_id(),
                         reason: reason.to_string(),
                     }
                 }
@@ -80,7 +82,7 @@ impl RepliconRenetServerPlugin {
         mut replicon_server: ResMut<RepliconServer>,
     ) {
         for &client_id in connected_clients.iter() {
-            let renet_client_id = renet::ClientId::from_raw(client_id.get());
+            let renet_client_id = client_id.as_renet_client_id();
             for channel_id in 0..channels.client_channels().len() as u8 {
                 while let Some(message) = renet_server.receive_message(renet_client_id, channel_id)
                 {
@@ -95,7 +97,7 @@ impl RepliconRenetServerPlugin {
         mut replicon_server: ResMut<RepliconServer>,
     ) {
         for (client_id, channel_id, message) in replicon_server.drain_sent() {
-            let client_id = renet::ClientId::from_raw(client_id.get());
+            let client_id = client_id.as_renet_client_id();
             renet_server.send_message(client_id, channel_id, message)
         }
     }

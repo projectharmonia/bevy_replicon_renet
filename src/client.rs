@@ -4,6 +4,8 @@ use bevy_renet::{self, renet::RenetClient, RenetClientPlugin, RenetReceive, Rene
 use bevy_renet::{renet::transport::NetcodeClientTransport, transport::NetcodeClientPlugin};
 use bevy_replicon::prelude::*;
 
+use crate::ClientIdExt;
+
 /// Adds renet as client messaging backend.
 ///
 /// Initializes [`RenetClientPlugin`] and systems that pass data between
@@ -56,7 +58,7 @@ impl RepliconRenetClientPlugin {
         // In renet only transport knows the ID.
         // TODO: Pending renet issue https://github.com/lucaspoffo/renet/issues/153
         #[cfg(feature = "renet_transport")]
-        let client_id = Some(ClientId::new(transport.client_id().raw()));
+        let client_id = Some(transport.client_id().as_client_id());
         #[cfg(not(feature = "renet_transport"))]
         let client_id = None;
 
