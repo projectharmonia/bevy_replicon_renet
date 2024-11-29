@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2024-11-29
+
 ### Added
 
 - Extension traits for conversion between Renet's and Replicon's `ClientId`s.
@@ -50,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First release after I/O abstraction.
 
-[unreleased]: https://github.com/projectharmonia/bevy_replicon_renet/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/projectharmonia/bevy_replicon_renet/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/projectharmonia/bevy_replicon_renet/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/projectharmonia/bevy_replicon_renet/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/projectharmonia/bevy_replicon_renet/releases/tag/v0.4.0
 [0.3.0]: https://github.com/projectharmonia/bevy_replicon/compare/v0.2.0...v0.3.0
