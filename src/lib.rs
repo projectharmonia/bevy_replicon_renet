@@ -138,6 +138,30 @@ impl RenetChannelsExt for RepliconChannels {
     }
 }
 
+/// External trait for [`ClientId`] to provide convenient conversion into [`renet::ClientId`].
+pub trait RenetClientIdExt {
+    /// Returns renet's Client ID.
+    fn to_renet(&self) -> renet::ClientId;
+}
+
+impl RenetClientIdExt for ClientId {
+    fn to_renet(&self) -> renet::ClientId {
+        renet::ClientId::from_raw(self.get())
+    }
+}
+
+/// External trait for [`renet::ClientId`] to provide convenient conversion into [`ClientId`].
+pub trait ClientIdExt {
+    /// Returns replicon's Client ID.
+    fn to_replicon(&self) -> ClientId;
+}
+
+impl ClientIdExt for renet::ClientId {
+    fn to_replicon(&self) -> ClientId {
+        ClientId::new(self.raw())
+    }
+}
+
 /// Converts replicon channels into renet channel configs.
 fn create_configs(channels: &[RepliconChannel], default_max_bytes: usize) -> Vec<ChannelConfig> {
     let mut channel_configs = Vec::with_capacity(channels.len());
