@@ -15,7 +15,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
 jobs:
-  format:
   typos:
     name: Typos
     runs-on: ubuntu-latest
@@ -26,6 +25,7 @@ jobs:
       - name: Check typos
         uses: crate-ci/typos@v1.28.1
 
+  format:
     name: Format
     runs-on: ubuntu-latest
     steps:
