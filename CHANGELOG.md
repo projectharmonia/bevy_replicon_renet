@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `server` and `client` features to disable unneeded funcionality.
+- `server` and `client` features to disable unneeded functionality.
 
 ### Changed
 
