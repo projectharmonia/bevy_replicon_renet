@@ -27,12 +27,12 @@ all-features = true
 [dependencies]
 bevy_replicon = { version = "0.28", default-features = false }
 bevy_renet = { version = "0.0.12", default-features = false }
-bevy = { version = "0.14", default-features = false }
+bevy = { version = "0.15", default-features = false }
 
 [dev-dependencies]
 serde = "1.0"
 clap = { version = "4.1", features = ["derive"] }
-bevy = { version = "0.14", default-features = false, features = [
+bevy = { version = "0.15", default-features = false, features = [
   "bevy_text",
   "bevy_ui",
   "bevy_gizmos",
