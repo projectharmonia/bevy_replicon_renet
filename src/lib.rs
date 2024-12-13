@@ -81,9 +81,10 @@ pub mod client;
 #[cfg(feature = "server")]
 pub mod server;
 
+#[cfg(feature = "renet_netcode")]
+pub use bevy_renet::netcode;
+
 pub use bevy_renet::renet;
-#[cfg(feature = "renet_transport")]
-pub use bevy_renet::transport;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_replicon::prelude::*;
@@ -135,30 +136,6 @@ impl RenetChannelsExt for RepliconChannels {
 
     fn get_client_configs(&self) -> Vec<ChannelConfig> {
         create_configs(self.client_channels(), self.default_max_bytes)
-    }
-}
-
-/// External trait for [`ClientId`] to provide convenient conversion into [`renet::ClientId`].
-pub trait RenetClientIdExt {
-    /// Returns renet's Client ID.
-    fn to_renet(&self) -> renet::ClientId;
-}
-
-impl RenetClientIdExt for ClientId {
-    fn to_renet(&self) -> renet::ClientId {
-        renet::ClientId::from_raw(self.get())
-    }
-}
-
-/// External trait for [`renet::ClientId`] to provide convenient conversion into [`ClientId`].
-pub trait ClientIdExt {
-    /// Returns replicon's Client ID.
-    fn to_replicon(&self) -> ClientId;
-}
-
-impl ClientIdExt for renet::ClientId {
-    fn to_replicon(&self) -> ClientId {
-        ClientId::new(self.raw())
     }
 }
 
