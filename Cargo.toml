@@ -48,6 +48,7 @@ client = ["bevy_replicon/client"]
 
 # Re-exports of renet features
 renet_netcode = ["bevy_renet/netcode"]
+renet_steam = ["bevy_renet/steam"]
 
 [[test]]
 name = "transport"

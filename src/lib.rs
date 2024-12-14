@@ -83,8 +83,9 @@ pub mod server;
 
 #[cfg(feature = "renet_netcode")]
 pub use bevy_renet::netcode;
-
 pub use bevy_renet::renet;
+#[cfg(feature = "renet_steam")]
+pub use bevy_renet::steam;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_replicon::prelude::*;
