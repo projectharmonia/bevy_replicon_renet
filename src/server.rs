@@ -1,13 +1,11 @@
 use bevy::prelude::*;
-#[cfg(feature = "renet_transport")]
-use bevy_renet::transport::NetcodeServerPlugin;
+#[cfg(feature = "renet_netcode")]
+use bevy_renet::netcode::NetcodeServerPlugin;
 use bevy_renet::{
     renet::{self, RenetServer},
     RenetReceive, RenetSend, RenetServerPlugin,
 };
 use bevy_replicon::prelude::*;
-
-use crate::{ClientIdExt, RenetClientIdExt};
 
 /// Adds renet as server messaging backend.
 ///
@@ -25,7 +23,7 @@ impl Plugin for RepliconRenetServerPlugin {
                 (
                     (
                         Self::set_running.run_if(resource_added::<RenetServer>),
-                        Self::set_stopped.run_if(resource_removed::<RenetServer>()),
+                        Self::set_stopped.run_if(resource_removed::<RenetServer>),
                         Self::receive_packets.run_if(resource_exists::<RenetServer>),
                     )
                         .chain()
@@ -40,7 +38,7 @@ impl Plugin for RepliconRenetServerPlugin {
                     .run_if(resource_exists::<RenetServer>),
             );
 
-        #[cfg(feature = "renet_transport")]
+        #[cfg(feature = "renet_netcode")]
         app.add_plugins(NetcodeServerPlugin);
     }
 }
@@ -61,11 +59,11 @@ impl RepliconRenetServerPlugin {
         for event in renet_server_events.read() {
             let replicon_event = match event {
                 renet::ServerEvent::ClientConnected { client_id } => ServerEvent::ClientConnected {
-                    client_id: client_id.to_replicon(),
+                    client_id: ClientId::new(*client_id),
                 },
                 renet::ServerEvent::ClientDisconnected { client_id, reason } => {
                     ServerEvent::ClientDisconnected {
-                        client_id: client_id.to_replicon(),
+                        client_id: ClientId::new(*client_id),
                         reason: reason.to_string(),
                     }
                 }
@@ -81,12 +79,12 @@ impl RepliconRenetServerPlugin {
         mut renet_server: ResMut<RenetServer>,
         mut replicon_server: ResMut<RepliconServer>,
     ) {
-        for &client_id in connected_clients.iter() {
-            let renet_client_id = client_id.to_renet();
+        for &client in connected_clients.iter() {
             for channel_id in 0..channels.client_channels().len() as u8 {
-                while let Some(message) = renet_server.receive_message(renet_client_id, channel_id)
+                while let Some(message) =
+                    renet_server.receive_message(client.id().get(), channel_id)
                 {
-                    replicon_server.insert_received(client_id, channel_id, message);
+                    replicon_server.insert_received(client.id(), channel_id, message);
                 }
             }
         }
@@ -97,8 +95,7 @@ impl RepliconRenetServerPlugin {
         mut replicon_server: ResMut<RepliconServer>,
     ) {
         for (client_id, channel_id, message) in replicon_server.drain_sent() {
-            let client_id = client_id.to_renet();
-            renet_server.send_message(client_id, channel_id, message)
+            renet_server.send_message(client_id.get(), channel_id, message)
         }
     }
 }
