@@ -34,8 +34,8 @@ If the `renet_transport` feature is enabled, netcode plugins will also be automa
 ## Server and client creation
 
 To connect to the server or create it, you need to initialize the
-[`RenetClient`](renet::RenetClient) and [`NetcodeClientTransport`](renet::transport::NetcodeClientTransport) **or**
-[`RenetServer`](renet::RenetServer) and [`NetcodeServerTransport`](renet::transport::NetcodeServerTransport)
+[`RenetClient`](renet::RenetClient) and [`NetcodeClientTransport`](bevy_renet::netcode::NetcodeClientTransport) **or**
+[`RenetServer`](renet::RenetServer) and [`NetcodeServerTransport`](bevy_renet::netcode::NetcodeServerTransport)
 resources from Renet.
 
 Never insert client and server resources in the same app for single-player, it will cause a replication loop.
