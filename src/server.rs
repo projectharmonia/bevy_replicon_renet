@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 #[cfg(feature = "renet_netcode")]
 use bevy_renet::netcode::NetcodeServerPlugin;
+#[cfg(feature = "renet_steam")]
+use bevy_renet::netcode::SteamServerPlugin;
 use bevy_renet::{
     renet::{self, RenetServer},
     RenetReceive, RenetSend, RenetServerPlugin,
@@ -40,6 +42,8 @@ impl Plugin for RepliconRenetServerPlugin {
 
         #[cfg(feature = "renet_netcode")]
         app.add_plugins(NetcodeServerPlugin);
+        #[cfg(feature = "renet_steam")]
+        app.add_plugins(SteamServerPlugin);
     }
 }
 
