@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Update to `bevy_replicon` 0.29.
+- Update to `bevy_replicon` 0.29 and `renet` 1.0.0.
 
 ## [0.5.1] - 2024-11-29
 
