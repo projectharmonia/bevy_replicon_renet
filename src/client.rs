@@ -2,7 +2,7 @@ use bevy::prelude::*;
 #[cfg(feature = "renet_netcode")]
 use bevy_renet::netcode::{NetcodeClientPlugin, NetcodeClientTransport};
 #[cfg(feature = "renet_steam")]
-use bevy_renet::netcode::{SteamClientPlugin, SteamClientTransport};
+use bevy_renet::steam::SteamClientPlugin;
 use bevy_renet::{self, renet::RenetClient, RenetClientPlugin, RenetReceive, RenetSend};
 use bevy_replicon::prelude::*;
 
@@ -55,25 +55,14 @@ impl RepliconRenetClientPlugin {
 
     fn set_connected(
         mut client: ResMut<RepliconClient>,
-        #[cfg(feature = "renet_netcode")] netcode_transport: Option<Res<NetcodeClientTransport>>,
-        #[cfg(feature = "renet_steam")] steam_transport: Option<Res<SteamClientTransport>>,
+        #[cfg(feature = "renet_netcode")] transport: Option<Res<NetcodeClientTransport>>,
     ) {
         // In renet only transport knows the ID.
         // TODO: Pending renet issue https://github.com/lucaspoffo/renet/issues/153
-        #[allow(unused_mut)]
-        let mut client_id = None;
         #[cfg(feature = "renet_netcode")]
-        if let Some(transport) = netcode_transport {
-            client_id = Some(ClientId::new(transport.client_id()));
-        }
-        #[cfg(feature = "renet_steam")]
-        if let Some(transport) = steam_transport {
-            assert!(
-                client_id.is_none(),
-                "two transports can't be active at the same time",
-            );
-            client_id = Some(ClientId::new(transport.client_id()));
-        }
+        let client_id = transport.map(|transport| ClientId::new(transport.client_id()));
+        #[cfg(not(feature = "renet_netcode"))]
+        let client_id = None;
 
         client.set_status(RepliconClientStatus::Connected { client_id });
     }

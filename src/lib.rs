@@ -38,6 +38,8 @@ To connect to the server or create it, you need to initialize the
 [`RenetServer`](renet::RenetServer) and [`NetcodeServerTransport`](bevy_renet::netcode::NetcodeServerTransport)
 resources from Renet.
 
+For steam transport you need to activate the corresponding and use its transport resource instead.
+
 Never insert client and server resources in the same app for single-player, it will cause a replication loop.
 
 This crate provides the [`RenetChannelsExt`] extension trait to conveniently convert channels
