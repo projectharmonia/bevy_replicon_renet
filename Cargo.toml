@@ -37,6 +37,7 @@ bevy = { version = "0.15", default-features = false, features = [
   "bevy_ui",
   "bevy_gizmos",
   "bevy_state",
+  "bevy_window",
   "x11",
   "default_font",
 ] }
@@ -51,13 +52,13 @@ renet_netcode = ["bevy_renet/netcode"]
 renet_steam = ["bevy_renet/steam"]
 
 [[test]]
-name = "transport"
-required-features = ["server", "client", "renet_transport"]
+name = "netcode"
+required-features = ["server", "client", "renet_netcode"]
 
 [[example]]
 name = "simple_box"
-required-features = ["server", "client", "renet_transport"]
+required-features = ["server", "client", "renet_netcode"]
 
 [[example]]
 name = "tic_tac_toe"
-required-features = ["server", "client", "renet_transport"]
+required-features = ["server", "client", "renet_netcode"]
