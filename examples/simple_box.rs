@@ -14,13 +14,11 @@ use bevy::{
 };
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
-    renet::{
-        transport::{
-            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport,
-            ServerAuthentication, ServerConfig,
-        },
-        ConnectionConfig, RenetClient, RenetServer,
+    netcode::{
+        ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication,
+        ServerConfig,
     },
+    renet::{ConnectionConfig, RenetClient, RenetServer},
     RenetChannelsExt, RepliconRenetPlugins,
 };
 use clap::Parser;
@@ -73,11 +71,7 @@ impl SimpleBoxPlugin {
     ) -> Result<(), Box<dyn Error>> {
         match *cli {
             Cli::SinglePlayer => {
-                commands.spawn(PlayerBundle::new(
-                    ClientId::SERVER,
-                    Vec2::ZERO,
-                    GREEN.into(),
-                ));
+                commands.spawn((Player(ClientId::SERVER), PlayerColor(GREEN.into())));
             }
             Cli::Server { port } => {
                 let server_channels_config = channels.get_server_configs();
@@ -103,19 +97,15 @@ impl SimpleBoxPlugin {
                 commands.insert_resource(server);
                 commands.insert_resource(transport);
 
-                commands.spawn(TextBundle::from_section(
-                    "Server",
-                    TextStyle {
+                commands.spawn((
+                    Text::new("Server"),
+                    TextFont {
                         font_size: 30.0,
-                        color: Color::WHITE,
-                        ..default()
+                        ..Default::default()
                     },
+                    TextColor::WHITE,
                 ));
-                commands.spawn(PlayerBundle::new(
-                    ClientId::SERVER,
-                    Vec2::ZERO,
-                    GREEN.into(),
-                ));
+                commands.spawn((Player(ClientId::SERVER), PlayerColor(GREEN.into())));
             }
             Cli::Client { port, ip } => {
                 let server_channels_config = channels.get_server_configs();
@@ -142,13 +132,13 @@ impl SimpleBoxPlugin {
                 commands.insert_resource(client);
                 commands.insert_resource(transport);
 
-                commands.spawn(TextBundle::from_section(
-                    format!("Client: {client_id:?}"),
-                    TextStyle {
+                commands.spawn((
+                    Text(format!("Client: {client_id:?}")),
+                    TextFont {
                         font_size: 30.0,
-                        color: Color::WHITE,
                         ..default()
                     },
+                    TextColor::WHITE,
                 ));
             }
         }
@@ -157,7 +147,7 @@ impl SimpleBoxPlugin {
     }
 
     fn spawn_camera(mut commands: Commands) {
-        commands.spawn(Camera2dBundle::default());
+        commands.spawn(Camera2d);
     }
 
     /// Logs server events and spawns a new player whenever a client connects.
@@ -170,11 +160,7 @@ impl SimpleBoxPlugin {
                     let r = ((client_id.get() % 23) as f32) / 23.0;
                     let g = ((client_id.get() % 27) as f32) / 27.0;
                     let b = ((client_id.get() % 39) as f32) / 39.0;
-                    commands.spawn(PlayerBundle::new(
-                        *client_id,
-                        Vec2::ZERO,
-                        Color::srgb(r, g, b),
-                    ));
+                    commands.spawn((Player(*client_id), PlayerColor(Color::srgb(r, g, b))));
                 }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
                     info!("{client_id:?} disconnected: {reason}");
@@ -187,7 +173,6 @@ impl SimpleBoxPlugin {
         for (position, color) in &players {
             gizmos.rect(
                 Vec3::new(position.x, position.y, 0.0),
-                Quat::IDENTITY,
                 Vec2::ONE * 50.0,
                 color.0,
             );
@@ -228,7 +213,7 @@ impl SimpleBoxPlugin {
             info!("received event {event:?} from {client_id:?}");
             for (player, mut position) in &mut players {
                 if *client_id == player.0 {
-                    **position += event.0 * time.delta_seconds() * MOVE_SPEED;
+                    **position += event.0 * time.delta_secs() * MOVE_SPEED;
                 }
             }
         }
@@ -260,33 +245,15 @@ impl Default for Cli {
     }
 }
 
-#[derive(Bundle)]
-struct PlayerBundle {
-    player: Player,
-    position: PlayerPosition,
-    color: PlayerColor,
-    replicated: Replicated,
-}
-
-impl PlayerBundle {
-    fn new(client_id: ClientId, position: Vec2, color: Color) -> Self {
-        Self {
-            player: Player(client_id),
-            position: PlayerPosition(position),
-            color: PlayerColor(color),
-            replicated: Replicated,
-        }
-    }
-}
-
-/// Contains the client ID of a player.
+/// Contains player ID.
 #[derive(Component, Serialize, Deserialize)]
+#[require(PlayerPosition, PlayerColor, Replicated)]
 struct Player(ClientId);
 
-#[derive(Component, Deserialize, Serialize, Deref, DerefMut)]
+#[derive(Component, Deserialize, Serialize, Deref, DerefMut, Default)]
 struct PlayerPosition(Vec2);
 
-#[derive(Component, Deserialize, Serialize)]
+#[derive(Component, Deserialize, Serialize, Default)]
 struct PlayerColor(Color);
 
 /// A movement event for the controlled box.

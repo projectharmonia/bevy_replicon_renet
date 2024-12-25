@@ -4,12 +4,12 @@ use std::{
 };
 
 use bevy::prelude::*;
-use bevy_renet::renet::{
-    transport::{
+use bevy_renet::{
+    netcode::{
         ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication,
         ServerConfig,
     },
-    ConnectionConfig, RenetClient, RenetServer,
+    renet::{ConnectionConfig, RenetClient, RenetServer},
 };
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{RenetChannelsExt, RepliconRenetPlugins};

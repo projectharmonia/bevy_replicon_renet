@@ -1,10 +1,10 @@
 use bevy::prelude::*;
+#[cfg(feature = "renet_netcode")]
+use bevy_renet::netcode::{NetcodeClientPlugin, NetcodeClientTransport};
+#[cfg(feature = "renet_steam")]
+use bevy_renet::steam::SteamClientPlugin;
 use bevy_renet::{self, renet::RenetClient, RenetClientPlugin, RenetReceive, RenetSend};
-#[cfg(feature = "renet_transport")]
-use bevy_renet::{renet::transport::NetcodeClientTransport, transport::NetcodeClientPlugin};
 use bevy_replicon::prelude::*;
-
-use crate::ClientIdExt;
 
 /// Adds renet as client messaging backend.
 ///
@@ -35,8 +35,10 @@ impl Plugin for RepliconRenetClientPlugin {
                     .run_if(bevy_renet::client_connected),
             );
 
-        #[cfg(feature = "renet_transport")]
+        #[cfg(feature = "renet_netcode")]
         app.add_plugins(NetcodeClientPlugin);
+        #[cfg(feature = "renet_steam")]
+        app.add_plugins(SteamClientPlugin);
     }
 }
 
@@ -53,13 +55,13 @@ impl RepliconRenetClientPlugin {
 
     fn set_connected(
         mut client: ResMut<RepliconClient>,
-        #[cfg(feature = "renet_transport")] transport: Res<NetcodeClientTransport>,
+        #[cfg(feature = "renet_netcode")] transport: Option<Res<NetcodeClientTransport>>,
     ) {
         // In renet only transport knows the ID.
         // TODO: Pending renet issue https://github.com/lucaspoffo/renet/issues/153
-        #[cfg(feature = "renet_transport")]
-        let client_id = Some(transport.client_id().to_replicon());
-        #[cfg(not(feature = "renet_transport"))]
+        #[cfg(feature = "renet_netcode")]
+        let client_id = transport.map(|transport| ClientId::new(transport.client_id()));
+        #[cfg(not(feature = "renet_netcode"))]
         let client_id = None;
 
         client.set_status(RepliconClientStatus::Connected { client_id });

@@ -1,6 +1,6 @@
 [package]
 name = "bevy_replicon_renet"
-version = "0.5.1"
+version = "0.6.0"
 authors = [
   "Hennadii Chernyshchyk <genaloner@gmail.com>",
   "koe <ukoe@protonmail.com>",
@@ -25,39 +25,40 @@ rustdoc-args = ["-Zunstable-options", "--cfg", "docsrs"]
 all-features = true
 
 [dependencies]
-bevy_replicon = { version = "0.28", default-features = false }
-bevy_renet = { version = "0.0.12", default-features = false }
-bevy = { version = "0.14", default-features = false }
+bevy_replicon = { version = "0.29", default-features = false }
+bevy_renet = { version = "1.0", default-features = false }
+bevy = { version = "0.15", default-features = false }
 
 [dev-dependencies]
 serde = "1.0"
 clap = { version = "4.1", features = ["derive"] }
-bevy = { version = "0.14", default-features = false, features = [
+bevy = { version = "0.15", default-features = false, features = [
   "bevy_text",
   "bevy_ui",
   "bevy_gizmos",
   "bevy_state",
+  "bevy_window",
   "x11",
   "default_font",
 ] }
 
 [features]
-default = ["client", "server", "renet_serde", "renet_transport"]
+default = ["client", "server", "renet_netcode"]
 server = ["bevy_replicon/server"]
 client = ["bevy_replicon/client"]
 
 # Re-exports of renet features
-renet_serde = ["bevy_renet/serde"]
-renet_transport = ["bevy_renet/transport"]
+renet_netcode = ["bevy_renet/netcode"]
+renet_steam = ["bevy_renet/steam"]
 
 [[test]]
-name = "transport"
-required-features = ["server", "client", "renet_transport"]
+name = "netcode"
+required-features = ["server", "client", "renet_netcode"]
 
 [[example]]
 name = "simple_box"
-required-features = ["server", "client", "renet_transport"]
+required-features = ["server", "client", "renet_netcode"]
 
 [[example]]
 name = "tic_tac_toe"
-required-features = ["server", "client", "renet_transport"]
+required-features = ["server", "client", "renet_netcode"]
