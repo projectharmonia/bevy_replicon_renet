@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `bevy_replicon_renet::client::RepliconRenetClientPlugin` now should be imported as `bevy_replicon_renet::RepliconRenetClientPlugin`.
+- `bevy_replicon_renet::server::RepliconRenetServerPlugin` now should be imported as `bevy_replicon_renet::RepliconRenetServerPlugin`.
+
 ## [0.6.0] - 2024-12-25
 
 ### Changed

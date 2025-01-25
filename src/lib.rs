@@ -79,9 +79,9 @@ to immediately react to changes.
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(feature = "client")]
-pub mod client;
+mod client;
 #[cfg(feature = "server")]
-pub mod server;
+mod server;
 
 #[cfg(feature = "renet_netcode")]
 pub use bevy_renet::netcode;
@@ -94,9 +94,9 @@ use bevy_replicon::prelude::*;
 use renet::{ChannelConfig, SendType};
 
 #[cfg(feature = "client")]
-use client::RepliconRenetClientPlugin;
+pub use client::RepliconRenetClientPlugin;
 #[cfg(feature = "server")]
-use server::RepliconRenetServerPlugin;
+pub use server::RepliconRenetServerPlugin;
 
 /// Plugin group for all replicon renet backend plugins.
 ///
