@@ -98,7 +98,7 @@ use client::RepliconRenetClientPlugin;
 #[cfg(feature = "server")]
 use server::RepliconRenetServerPlugin;
 
-/// Plugin group for all replicon plugins for renet.
+/// Plugin group for all replicon renet backend plugins.
 ///
 /// Contains the following:
 /// * [`RepliconRenetServerPlugin`] - with feature `server`.
