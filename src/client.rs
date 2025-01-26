@@ -74,6 +74,10 @@ impl RepliconRenetClientPlugin {
     ) {
         for channel_id in 0..channels.server_channels().len() as u8 {
             while let Some(message) = renet_client.receive_message(channel_id) {
+                trace!(
+                    "forwarding {} received bytes over channel {channel_id}",
+                    message.len()
+                );
                 replicon_client.insert_received(channel_id, message);
             }
         }
@@ -84,6 +88,10 @@ impl RepliconRenetClientPlugin {
         mut replicon_client: ResMut<RepliconClient>,
     ) {
         for (channel_id, message) in replicon_client.drain_sent() {
+            trace!(
+                "forwarding {} sent bytes over channel {channel_id}",
+                message.len()
+            );
             renet_client.send_message(channel_id, message)
         }
     }

@@ -61,6 +61,7 @@ impl RepliconRenetServerPlugin {
         mut server_events: EventWriter<ServerEvent>,
     ) {
         for event in renet_server_events.read() {
+            debug!("forwarding event `{event:?}`");
             let replicon_event = match event {
                 renet::ServerEvent::ClientConnected { client_id } => ServerEvent::ClientConnected {
                     client_id: ClientId::new(*client_id),
@@ -88,6 +89,10 @@ impl RepliconRenetServerPlugin {
                 while let Some(message) =
                     renet_server.receive_message(client.id().get(), channel_id)
                 {
+                    trace!(
+                        "forwarding {} received bytes over channel {channel_id}",
+                        message.len()
+                    );
                     replicon_server.insert_received(client.id(), channel_id, message);
                 }
             }
@@ -99,6 +104,10 @@ impl RepliconRenetServerPlugin {
         mut replicon_server: ResMut<RepliconServer>,
     ) {
         for (client_id, channel_id, message) in replicon_server.drain_sent() {
+            trace!(
+                "forwarding {} sent bytes over channel {channel_id}",
+                message.len()
+            );
             renet_server.send_message(client_id.get(), channel_id, message)
         }
     }
