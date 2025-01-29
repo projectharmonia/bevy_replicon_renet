@@ -40,7 +40,7 @@ fn connect_disconnect() {
     let connected_clients = server_app.world().resource::<ConnectedClients>();
     assert_eq!(connected_clients.len(), 1);
 
-    let replicon_client = client_app.world_mut().resource::<RepliconClient>();
+    let replicon_client = client_app.world().resource::<RepliconClient>();
     assert!(replicon_client.is_connected());
 
     let mut renet_client = client_app.world_mut().resource_mut::<RenetClient>();
@@ -146,7 +146,7 @@ fn client_event() {
     server_app.update();
 
     let client_events = server_app
-        .world_mut()
+        .world()
         .resource::<Events<FromClient<DummyEvent>>>();
     assert_eq!(client_events.len(), 1);
 }
