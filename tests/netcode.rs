@@ -89,7 +89,10 @@ fn replication() {
     server_app.update();
     client_app.update();
 
-    assert_eq!(client_app.world().entities().len(), 1);
+    client_app
+        .world_mut()
+        .query::<&Replicated>()
+        .single(client_app.world());
 }
 
 #[test]
@@ -105,7 +108,8 @@ fn server_event() {
             }),
             RepliconRenetPlugins,
         ))
-        .add_server_event::<DummyEvent>(ChannelKind::Ordered);
+        .add_server_event::<DummyEvent>(ChannelKind::Ordered)
+        .finish();
     }
 
     setup(&mut server_app, &mut client_app);
@@ -135,7 +139,8 @@ fn client_event() {
             }),
             RepliconRenetPlugins,
         ))
-        .add_client_event::<DummyEvent>(ChannelKind::Ordered);
+        .add_client_event::<DummyEvent>(ChannelKind::Ordered)
+        .finish();
     }
 
     setup(&mut server_app, &mut client_app);

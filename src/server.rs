@@ -1,10 +1,15 @@
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
+
 use bevy::prelude::*;
 #[cfg(feature = "renet_netcode")]
 use bevy_renet::netcode::NetcodeServerPlugin;
 #[cfg(feature = "renet_steam")]
 use bevy_renet::steam::SteamServerPlugin;
 use bevy_renet::{
-    renet::{self, RenetServer},
+    renet::{self, RenetServer, ServerEvent},
     RenetReceive, RenetSend, RenetServerPlugin,
 };
 use bevy_replicon::prelude::*;
@@ -30,7 +35,7 @@ impl Plugin for RepliconRenetServerPlugin {
                     )
                         .chain()
                         .in_set(ServerSet::ReceivePackets),
-                    Self::forward_server_events.in_set(ServerSet::SendEvents),
+                    Self::forward_server_events.in_set(ServerSet::TriggerConnectionEvents),
                 ),
             )
             .add_systems(
@@ -57,24 +62,31 @@ impl RepliconRenetServerPlugin {
     }
 
     fn forward_server_events(
-        mut renet_server_events: EventReader<renet::ServerEvent>,
-        mut server_events: EventWriter<ServerEvent>,
+        mut commands: Commands,
+        mut renet_server_events: EventReader<ServerEvent>,
     ) {
         for event in renet_server_events.read() {
             debug!("forwarding event `{event:?}`");
-            let replicon_event = match event {
-                renet::ServerEvent::ClientConnected { client_id } => ServerEvent::ClientConnected {
+            match event {
+                ServerEvent::ClientConnected { client_id } => commands.trigger(ClientConnected {
                     client_id: ClientId::new(*client_id),
-                },
-                renet::ServerEvent::ClientDisconnected { client_id, reason } => {
-                    ServerEvent::ClientDisconnected {
+                }),
+                ServerEvent::ClientDisconnected { client_id, reason } => {
+                    let reason = match reason {
+                        renet::DisconnectReason::DisconnectedByClient => {
+                            DisconnectReason::DisconnectedByClient
+                        }
+                        renet::DisconnectReason::DisconnectedByServer => {
+                            DisconnectReason::DisconnectedByServer
+                        }
+                        _ => Box::<BackendError>::from(RenetDisconnectReason(*reason)).into(),
+                    };
+                    commands.trigger(ClientDisconnected {
                         client_id: ClientId::new(*client_id),
-                        reason: reason.to_string(),
-                    }
+                        reason,
+                    });
                 }
-            };
-
-            server_events.send(replicon_event);
+            }
         }
     }
 
@@ -112,3 +124,17 @@ impl RepliconRenetServerPlugin {
         }
     }
 }
+
+/// A wrapper to implement [`Error`] for [`renet::DisconnectReason`].
+///
+/// Temporary workaround until [this PR](https://github.com/lucaspoffo/renet/pull/170) is merged.
+#[derive(Debug)]
+pub struct RenetDisconnectReason(pub renet::DisconnectReason);
+
+impl Display for RenetDisconnectReason {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Error for RenetDisconnectReason {}
