@@ -92,7 +92,7 @@ pub use bevy_renet::steam;
 #[cfg(feature = "client")]
 pub use client::RepliconRenetClientPlugin;
 #[cfg(feature = "server")]
-pub use server::{RenetId, RepliconRenetServerPlugin};
+pub use server::{RenetId, RenetIdMap, RepliconRenetServerPlugin};
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_replicon::prelude::*;

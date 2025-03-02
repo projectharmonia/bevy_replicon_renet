@@ -130,7 +130,7 @@ impl RepliconRenetServerPlugin {
 ///
 /// See also [`RenetId`] for getting [`ClientId`] from entities (using [`Query::get`], for example).
 #[derive(Resource, Deref, Default)]
-struct RenetIdMap(HashMap<ClientId, Entity>);
+pub struct RenetIdMap(HashMap<ClientId, Entity>);
 
 /// Component with Renet's [`ClientId`].
 ///
