@@ -111,8 +111,8 @@ fn read_cli(
         Cli::Hotseat => {
             info!("starting hotseat");
             // Set all players to server to play from a single machine and start the game right away.
-            commands.spawn((LocalPlayer, Symbol::Cross, PlayerClient(SERVER)));
-            commands.spawn((LocalPlayer, Symbol::Nought, PlayerClient(SERVER)));
+            commands.spawn((LocalPlayer, PlayerOwner(SERVER), Symbol::Cross));
+            commands.spawn((LocalPlayer, PlayerOwner(SERVER), Symbol::Nought));
             commands.set_state(GameState::InGame);
         }
         Cli::Server { port, symbol } => {
@@ -139,7 +139,7 @@ fn read_cli(
 
             commands.insert_resource(server);
             commands.insert_resource(transport);
-            commands.spawn((LocalPlayer, symbol, PlayerClient(SERVER)));
+            commands.spawn((LocalPlayer, PlayerOwner(SERVER), symbol));
         }
         Cli::Client { port, ip } => {
             info!("connecting to {ip}:{port}");
@@ -300,7 +300,7 @@ fn apply_pick(
     mut commands: Commands,
     cells: Query<(Entity, &Cell)>,
     turn_symbol: Res<TurnSymbol>,
-    players: Query<(&PlayerClient, &Symbol)>,
+    players: Query<(&PlayerOwner, &Symbol)>,
 ) {
     // It's good to check the received data because client could be cheating.
     if trigger.index > GRID_SIZE * GRID_SIZE {
@@ -310,7 +310,7 @@ fn apply_pick(
 
     if !players
         .iter()
-        .any(|(&client, &symbol)| *client == trigger.client_entity && symbol == **turn_symbol)
+        .any(|(&owner, &symbol)| *owner == trigger.client_entity && symbol == **turn_symbol)
     {
         error!(
             "`{}` chose cell {} at wrong turn",
@@ -405,8 +405,8 @@ fn init_client(
     let player_entity = commands
         .spawn((
             Player,
+            PlayerOwner(trigger.client_entity),
             server_symbol.next(),
-            PlayerClient(trigger.client_entity),
         ))
         .id();
     entity_map.insert(player_entity, trigger.player_entity);
@@ -684,7 +684,7 @@ struct LocalPlayer;
 ///
 /// It's not replicated and present only on server or singleplayer.
 #[derive(Clone, Copy, Component, Deref)]
-struct PlayerClient(Entity);
+struct PlayerOwner(Entity);
 
 /// A trigger that indicates a symbol pick.
 ///
@@ -697,7 +697,7 @@ struct CellPick {
 
 /// A trigger to send client cell entities to server to estabialize mappings for replication.
 ///
-/// See [`TicTacToePlugin::client_start`] for details.
+/// See [`client_start`] for details.
 #[derive(Event, Serialize, Deserialize)]
 struct MapBoard {
     cell_entities: HashMap<usize, Entity>,
