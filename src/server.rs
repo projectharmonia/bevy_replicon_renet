@@ -1,18 +1,14 @@
-use std::{
-    error::Error,
-    fmt::{self, Display, Formatter},
-};
-
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 #[cfg(feature = "renet_netcode")]
 use bevy_renet::netcode::NetcodeServerPlugin;
 #[cfg(feature = "renet_steam")]
 use bevy_renet::steam::SteamServerPlugin;
 use bevy_renet::{
-    renet::{self, RenetServer, ServerEvent},
+    renet::{ClientId, RenetServer, ServerEvent},
     RenetReceive, RenetSend, RenetServerPlugin,
 };
 use bevy_replicon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// Adds renet as server messaging backend.
 ///
@@ -23,20 +19,19 @@ pub struct RepliconRenetServerPlugin;
 impl Plugin for RepliconRenetServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(RenetServerPlugin)
+            .init_resource::<RenetIdMap>()
             .configure_sets(PreUpdate, ServerSet::ReceivePackets.after(RenetReceive))
             .configure_sets(PostUpdate, ServerSet::SendPackets.before(RenetSend))
             .add_systems(
                 PreUpdate,
                 (
-                    (
-                        Self::set_running.run_if(resource_added::<RenetServer>),
-                        Self::set_stopped.run_if(resource_removed::<RenetServer>),
-                        Self::receive_packets.run_if(resource_exists::<RenetServer>),
-                    )
-                        .chain()
-                        .in_set(ServerSet::ReceivePackets),
-                    Self::forward_server_events.in_set(ServerSet::TriggerConnectionEvents),
-                ),
+                    Self::set_running.run_if(resource_added::<RenetServer>),
+                    Self::set_stopped.run_if(resource_removed::<RenetServer>),
+                    (Self::receive_packets, Self::forward_server_events)
+                        .run_if(resource_exists::<RenetServer>),
+                )
+                    .chain()
+                    .in_set(ServerSet::ReceivePackets),
             )
             .add_systems(
                 PostUpdate,
@@ -63,50 +58,52 @@ impl RepliconRenetServerPlugin {
 
     fn forward_server_events(
         mut commands: Commands,
-        mut renet_server_events: EventReader<ServerEvent>,
+        mut server_events: EventReader<ServerEvent>,
+        mut renet_map: ResMut<RenetIdMap>,
     ) {
-        for event in renet_server_events.read() {
-            debug!("forwarding event `{event:?}`");
+        for event in server_events.read() {
             match event {
-                ServerEvent::ClientConnected { client_id } => commands.trigger(ClientConnected {
-                    client_id: ClientId::new(*client_id),
-                }),
+                ServerEvent::ClientConnected { client_id } => {
+                    let client_entity = commands.spawn((ConnectedClient, RenetId(*client_id))).id();
+                    renet_map.0.insert(*client_id, client_entity);
+                    debug!("connecting client with ID {client_id} as `{client_entity}`");
+                }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
-                    let reason = match reason {
-                        renet::DisconnectReason::DisconnectedByClient => {
-                            DisconnectReason::DisconnectedByClient
-                        }
-                        renet::DisconnectReason::DisconnectedByServer => {
-                            DisconnectReason::DisconnectedByServer
-                        }
-                        _ => Box::<BackendError>::from(RenetDisconnectReason(*reason)).into(),
-                    };
-                    commands.trigger(ClientDisconnected {
-                        client_id: ClientId::new(*client_id),
-                        reason,
-                    });
+                    let client_entity = renet_map
+                        .0
+                        .remove(client_id)
+                        .expect("clients should be connected before disconnection");
+
+                    commands.entity(client_entity).despawn();
+                    debug!("disconnecting client `{client_entity}` with ID {client_id}: {reason}");
                 }
             }
         }
     }
 
     fn receive_packets(
-        connected_clients: Res<ConnectedClients>,
         channels: Res<RepliconChannels>,
         mut renet_server: ResMut<RenetServer>,
         mut replicon_server: ResMut<RepliconServer>,
+        mut clients: Query<(Entity, &RenetId, &mut NetworkStats)>,
     ) {
-        for &client in connected_clients.iter() {
+        for (client_entity, &renet_id, mut stats) in &mut clients {
             for channel_id in 0..channels.client_channels().len() as u8 {
-                while let Some(message) =
-                    renet_server.receive_message(client.id().get(), channel_id)
-                {
+                while let Some(message) = renet_server.receive_message(*renet_id, channel_id) {
                     trace!(
                         "forwarding {} received bytes over channel {channel_id}",
                         message.len()
                     );
-                    replicon_server.insert_received(client.id(), channel_id, message);
+                    replicon_server.insert_received(client_entity, channel_id, message);
                 }
+            }
+
+            // Renet events reading runs in parallel, so the client might have been disconnected.
+            if let Ok(info) = renet_server.network_info(*renet_id) {
+                stats.rtt = info.rtt;
+                stats.packet_loss = info.packet_loss;
+                stats.sent_bps = info.bytes_sent_per_second;
+                stats.received_bps = info.bytes_received_per_second;
             }
         }
     }
@@ -114,27 +111,52 @@ impl RepliconRenetServerPlugin {
     fn send_packets(
         mut renet_server: ResMut<RenetServer>,
         mut replicon_server: ResMut<RepliconServer>,
+        clients: Query<&RenetId>,
     ) {
-        for (client_id, channel_id, message) in replicon_server.drain_sent() {
+        for (client_entity, channel_id, message) in replicon_server.drain_sent() {
             trace!(
                 "forwarding {} sent bytes over channel {channel_id}",
                 message.len()
             );
-            renet_server.send_message(client_id.get(), channel_id, message)
+            let renet_id = *clients
+                .get(client_entity)
+                .expect("messages should be sent only to connected clients");
+            renet_server.send_message(*renet_id, channel_id, message)
         }
     }
 }
 
-/// A wrapper to implement [`Error`] for [`renet::DisconnectReason`].
+/// Maps [`ClientId`]'s into client entities.
 ///
-/// Temporary workaround until [this PR](https://github.com/lucaspoffo/renet/pull/170) is merged.
-#[derive(Debug)]
-pub struct RenetDisconnectReason(pub renet::DisconnectReason);
+/// See also [`RenetId`] for getting [`ClientId`] from entities (using [`Query::get`], for example).
+#[derive(Resource, Deref, Default)]
+struct RenetIdMap(HashMap<ClientId, Entity>);
 
-impl Display for RenetDisconnectReason {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.0.fmt(f)
+/// Component with Renet's [`ClientId`].
+///
+/// Attached to connected clients by backend.
+///
+/// See also [`RenetIdMap`] for getting client entities from [`ClientId`].
+#[derive(
+    Component,
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Serialize,
+    Deserialize,
+    Reflect,
+    Deref,
+)]
+pub struct RenetId(u64);
+
+impl RenetId {
+    /// Creates a new ID wrapping the given value.
+    pub const fn new(value: u64) -> Self {
+        Self(value)
     }
 }
-
-impl Error for RenetDisconnectReason {}
