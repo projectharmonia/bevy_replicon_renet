@@ -25,9 +25,10 @@ rustdoc-args = ["-Zunstable-options", "--cfg", "docsrs"]
 all-features = true
 
 [dependencies]
-bevy_replicon = { version = "0.30", default-features = false }
+bevy_replicon = { git = "https://github.com/projectharmonia/bevy_replicon", branch = "connected-entities", default-features = false }
 bevy_renet = { version = "1.0", default-features = false }
 bevy = { version = "0.15", default-features = false }
+serde = "1.0"
 
 [dev-dependencies]
 bevy = { version = "0.15", default-features = false, features = [
@@ -40,7 +41,6 @@ bevy = { version = "0.15", default-features = false, features = [
   "default_font",
 ] }
 clap = { version = "4.1", features = ["derive"] }
-serde = "1.0"
 
 [features]
 default = ["client", "server", "renet_netcode"]
