@@ -66,7 +66,10 @@ impl RepliconRenetServerPlugin {
             match event {
                 ServerEvent::ClientConnected { client_id } => {
                     let client_id = ClientId::new(*client_id);
-                    let client_entity = commands.spawn(ConnectedClient::new(client_id)).id();
+                    const MAX_SIZE: usize = 1200; // From https://github.com/lucaspoffo/renet/blob/master/renet/src/packet.rs#L7
+                    let client_entity = commands
+                        .spawn(ConnectedClient::new(client_id, MAX_SIZE))
+                        .id();
                     debug!("connecting `{client_entity}` with `{client_id:?}`");
                 }
                 ServerEvent::ClientDisconnected { client_id, reason } => {
