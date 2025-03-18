@@ -11,12 +11,12 @@ use std::{
 use bevy::{prelude::*, utils::hashbrown::HashMap};
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
+    RenetChannelsExt, RepliconRenetPlugins,
     netcode::{
         ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication,
         ServerConfig,
     },
     renet::{ConnectionConfig, RenetClient, RenetServer},
-    RenetChannelsExt, RepliconRenetPlugins,
 };
 use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};

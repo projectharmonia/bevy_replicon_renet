@@ -4,8 +4,8 @@ use bevy_renet::netcode::NetcodeServerPlugin;
 #[cfg(feature = "renet_steam")]
 use bevy_renet::steam::SteamServerPlugin;
 use bevy_renet::{
-    renet::{RenetServer, ServerEvent},
     RenetReceive, RenetSend, RenetServerPlugin,
+    renet::{RenetServer, ServerEvent},
 };
 use bevy_replicon::{
     core::connected_client::{ClientId, ClientIdMap},

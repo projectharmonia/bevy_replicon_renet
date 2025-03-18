@@ -15,12 +15,12 @@ use bevy::{
 };
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
+    RenetChannelsExt, RepliconRenetPlugins,
     netcode::{
         ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication,
         ServerConfig,
     },
     renet::{ConnectionConfig, RenetClient, RenetServer},
-    RenetChannelsExt, RepliconRenetPlugins,
 };
 use clap::Parser;
 use serde::{Deserialize, Serialize};
