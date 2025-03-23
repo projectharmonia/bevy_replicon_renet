@@ -143,7 +143,7 @@ pub trait RenetChannelsExt {
     /// Returns server channel configs that can be used to create [`ConnectionConfig`](renet::ConnectionConfig).
     ///
     /// - [`SendType::ReliableUnordered::resend_time`] and [`SendType::ReliableOrdered::resend_time`] will be
-    /// set to 300 ms.
+    ///   set to 300 ms.
     /// - [`ChannelConfig::max_memory_usage_bytes`] will be set to `5 * 1024 * 1024`.
     ///
     /// You can configure these parameters after creation. However, do not change [`SendType`], as Replicon relies
