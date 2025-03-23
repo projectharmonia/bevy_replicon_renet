@@ -17,6 +17,7 @@ See also [examples](examples).
 
 | bevy_renet | bevy_replicon | bevy_replicon_renet |
 | ---------- | ------------- | ------------------- |
+| 1.0.0      | 0.32          | 0.9                 |
 | 1.0.0      | 0.31          | 0.8                 |
 | 1.0.0      | 0.30          | 0.7                 |
 | 1.0.0      | 0.29          | 0.6                 |
