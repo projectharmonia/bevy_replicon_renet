@@ -3,13 +3,18 @@ Provides integration for [`bevy_replicon`](https://docs.rs/bevy_replicon) for [`
 
 # Getting started
 
-This guide assumes that you have already read [quick start guide](https://docs.rs/bevy_replicon#quick-start) from `bevy_replicon`.
+This guide assumes that you have already read the [quick start guide](https://docs.rs/bevy_replicon#quick-start)
+for `bevy_replicon`.
 
-All Renet API is re-exported from this plugin, you don't need to include `bevy_renet` or `renet` to your `Cargo.toml`.
+## Modules
 
-Renet by default uses the netcode transport which is re-exported by the `renet_transport` feature. If you want to use other transports, you can disable it.
+Renet API is re-exported from this drate under [`renet`] module. Features from `bevy_renet` are exposed via
+`renet_*` features, which also re-export the corresponding transport modules. Like in `bevy_renet`, the netcode
+transport is enabled by default.
 
-## Initialization
+So you don't need to include `bevy_renet` or `renet` in your `Cargo.toml`.
+
+## Plugins
 
 Add [`RepliconRenetPlugins`] along with [`RepliconPlugins`]:
 
@@ -21,49 +26,57 @@ use bevy_replicon_renet::RepliconRenetPlugins;
 let mut app = App::new();
 app.add_plugins((MinimalPlugins, RepliconPlugins, RepliconRenetPlugins));
 ```
-If you want to separate the client and server, you can use the `client` and `server` features (both enabled by default),
-which control enabled plugins. These features automatically enable corresponding features in `bevy_replicon`.
 
-It's also possible to do it at runtime via [`PluginGroupBuilder::disable()`].
-For server disable [`RepliconRenetClientPlugin`].
-For client disable [`RepliconRenetServerPlugin`].
+Similar to Replicon, we provide `client` and `server` features. These automatically enable the corresponding
+features in `bevy_replicon`.
 
-Plugins in [`RepliconRenetPlugins`] automatically add `renet` plugins, you don't need to add them.
-If the `renet_transport` feature is enabled, netcode plugins will also be automatically added.
+The plugins in [`RepliconRenetPlugins`] automatically include the `renet` plugins, so you don't need to add
+them manually. If the `renet_transport` feature is enabled, the netcode plugins will also be added automatically.
 
 ## Server and client creation
 
-To connect to the server or create it, you need to initialize the
+Just like with regular `bevy_renet`, you need to create the
 [`RenetClient`](renet::RenetClient) and [`NetcodeClientTransport`](bevy_renet::netcode::NetcodeClientTransport) **or**
 [`RenetServer`](renet::RenetServer) and [`NetcodeServerTransport`](bevy_renet::netcode::NetcodeServerTransport)
 resources from Renet.
 
-For steam transport you need to activate the corresponding and use its transport resource instead.
+For steam transport you need to activate the corresponding feature and use its transport resource instead.
 
-Never insert client and server resources in the same app for single-player, it will cause a replication loop.
+This crate will automatically manage their integration with Replion.
 
-This crate provides the [`RenetChannelsExt`] extension trait to conveniently convert channels
-from the [`RepliconChannels`] resource into renet channels.
-When creating a server or client you need to use a [`ConnectionConfig`](renet::ConnectionConfig)
-from [`renet`], which can be initialized like this:
+<div class="warning">
+
+Never insert client and server resources in the same app, it will cause a replication loop.
+See the Replicon's quick start guide for more details.
+
+</div>
+
+The only Replicon-specific part is channels. You need to get them from the [`RepliconChannels`] resource.
+This crate provides the [`RenetChannelsExt`] extension trait to conveniently create renet channels from it:
 
 ```
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
-use bevy_replicon_renet::{renet::ConnectionConfig, RenetChannelsExt, RepliconRenetPlugins};
+use bevy_replicon_renet::{renet::ConnectionConfig, RenetChannelsExt};
 
-# let mut app = App::new();
-# app.add_plugins(RepliconPlugins);
-let channels = app.world().resource::<RepliconChannels>();
-let connection_config = ConnectionConfig {
-    server_channels_config: channels.get_server_configs(),
-    client_channels_config: channels.get_client_configs(),
-    ..Default::default()
-};
+fn init(channels: Res<RepliconChannels>) {
+    let connection_config = ConnectionConfig {
+        server_channels_config: channels.get_server_configs(),
+        client_channels_config: channels.get_client_configs(),
+        ..Default::default()
+    };
+
+    // Use this config for `RenetServer` or `RenetClient`
+}
 ```
 
-For a full example of how to initialize a server or client see the example in the
-repository.
+For a full example of how to initialize a server or client see examples in the repository.
+
+<div class="warning">
+
+Channels need to be obtained only **after** registering all replication components and remote events.
+
+</div>
 
 ## Replicon conditions
 
@@ -71,7 +84,7 @@ The crate updates the running state of [`RepliconServer`] and connection state o
 based on the states of [`RenetServer`](renet::RenetServer) and [`RenetClient`](renet::RenetServer)
 in [`PreUpdate`].
 
-This means that [replicon conditions](bevy_replicon::core::common_conditions) won't work in schedules
+This means that [Replicon conditions](bevy_replicon::shared::common_conditions) won't work in schedules
 like [`Startup`]. As a workaround, you can directly check if renet's resources are present. This may be resolved
 in the future once we have [observers for resources](https://github.com/bevyengine/bevy/issues/12231)
 to immediately react to changes.
@@ -82,6 +95,8 @@ to immediately react to changes.
 mod client;
 #[cfg(feature = "server")]
 mod server;
+
+use std::time::Duration;
 
 #[cfg(feature = "renet_netcode")]
 pub use bevy_renet::netcode;
@@ -98,7 +113,7 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_replicon::prelude::*;
 use renet::{ChannelConfig, SendType};
 
-/// Plugin group for all replicon renet backend plugins.
+/// Plugin group for all Replicon renet backend plugins.
 ///
 /// Contains the following:
 /// * [`RepliconRenetServerPlugin`] - with feature `server`.
@@ -126,6 +141,48 @@ impl PluginGroup for RepliconRenetPlugins {
 /// External trait for [`RepliconChannels`] to provide convenient conversion into renet channel configs.
 pub trait RenetChannelsExt {
     /// Returns server channel configs that can be used to create [`ConnectionConfig`](renet::ConnectionConfig).
+    ///
+    /// - [`SendType::ReliableUnordered::resend_time`] and [`SendType::ReliableOrdered::resend_time`] will be
+    /// set to 300 ms.
+    /// - [`ChannelConfig::max_memory_usage_bytes`] will be set to `5 * 1024 * 1024`.
+    ///
+    /// You can configure these parameters after creation. However, do not change [`SendType`], as Replicon relies
+    /// on its defined delivery guarantees.
+    ///
+    /// # Examples
+    ///
+    /// Configure event channels using
+    /// [`RemoteEventRegistry`](bevy_replicon::shared::event::remote_event_registry::RemoteEventRegistry):
+    ///
+    /// ```
+    /// # use bevy::prelude::*;
+    /// # use bevy_replicon::{prelude::*, shared::event::remote_event_registry::RemoteEventRegistry};
+    /// # use bevy_replicon_renet::RenetChannelsExt;
+    /// # let channels = RepliconChannels::default();
+    /// # let registry = RemoteEventRegistry::default();
+    /// fn init(channels: Res<RepliconChannels>, event_registry: Res<RemoteEventRegistry>) {
+    ///     let mut server_configs = channels.get_server_configs();
+    ///     let fire_id = event_registry.server_channel::<Fire>().unwrap();
+    ///     let fire_channel = &mut server_configs[fire_id];
+    ///     fire_channel.max_memory_usage_bytes = 2048;
+    ///     // Use `server_configs` to create `RenetServer`.
+    /// }
+    ///
+    /// #[derive(Event)]
+    /// struct Fire;
+    /// ```
+    ///
+    /// Configure replication channels:
+    ///
+    /// ```
+    /// # use bevy::prelude::*;
+    /// # use bevy_replicon::{prelude::*, shared::backend::replicon_channels::ReplicationChannel};
+    /// # use bevy_replicon_renet::RenetChannelsExt;
+    /// # let channels = RepliconChannels::default();
+    /// let mut server_configs = channels.get_server_configs();
+    /// let channel = &mut server_configs[ReplicationChannel::Updates as usize];
+    /// channel.max_memory_usage_bytes = 4090;
+    /// ```
     fn get_server_configs(&self) -> Vec<ChannelConfig>;
 
     /// Same as [`RenetChannelsExt::get_server_configs`], but for clients.
@@ -134,30 +191,40 @@ pub trait RenetChannelsExt {
 
 impl RenetChannelsExt for RepliconChannels {
     fn get_server_configs(&self) -> Vec<ChannelConfig> {
-        create_configs(self.server_channels(), self.default_max_bytes)
+        let channels = self.server_channels();
+        if channels.len() > u8::MAX as usize {
+            panic!("number of server channels shouldn't exceed `u8::MAX`");
+        }
+
+        create_configs(channels)
     }
 
     fn get_client_configs(&self) -> Vec<ChannelConfig> {
-        create_configs(self.client_channels(), self.default_max_bytes)
+        let channels = self.client_channels();
+        if channels.len() > u8::MAX as usize {
+            panic!("number of client channels shouldn't exceed `u8::MAX`");
+        }
+
+        create_configs(channels)
     }
 }
 
-/// Converts replicon channels into renet channel configs.
-fn create_configs(channels: &[RepliconChannel], default_max_bytes: usize) -> Vec<ChannelConfig> {
+/// Converts Replicon channels into renet channel configs.
+fn create_configs(channels: &[Channel]) -> Vec<ChannelConfig> {
     let mut channel_configs = Vec::with_capacity(channels.len());
-    for (index, channel) in channels.iter().enumerate() {
-        let send_type = match channel.kind {
-            ChannelKind::Unreliable => SendType::Unreliable,
-            ChannelKind::Unordered => SendType::ReliableUnordered {
-                resend_time: channel.resend_time,
+    for (index, &channel) in channels.iter().enumerate() {
+        let send_type = match channel {
+            Channel::Unreliable => SendType::Unreliable,
+            Channel::Unordered => SendType::ReliableUnordered {
+                resend_time: Duration::from_millis(300),
             },
-            ChannelKind::Ordered => SendType::ReliableOrdered {
-                resend_time: channel.resend_time,
+            Channel::Ordered => SendType::ReliableOrdered {
+                resend_time: Duration::from_millis(300),
             },
         };
         let config = ChannelConfig {
             channel_id: index as u8,
-            max_memory_usage_bytes: channel.max_bytes.unwrap_or(default_max_bytes),
+            max_memory_usage_bytes: 5 * 1024 * 1024,
             send_type,
         };
 

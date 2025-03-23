@@ -88,7 +88,7 @@ impl RepliconRenetClientPlugin {
                 "forwarding {} sent bytes over channel {channel_id}",
                 message.len()
             );
-            renet_client.send_message(channel_id, message)
+            renet_client.send_message(channel_id as u8, message)
         }
     }
 }

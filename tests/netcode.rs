@@ -107,7 +107,7 @@ fn server_event() {
             }),
             RepliconRenetPlugins,
         ))
-        .add_server_event::<DummyEvent>(ChannelKind::Ordered)
+        .add_server_event::<DummyEvent>(Channel::Ordered)
         .finish();
     }
 
@@ -138,7 +138,7 @@ fn client_event() {
             }),
             RepliconRenetPlugins,
         ))
-        .add_client_event::<DummyEvent>(ChannelKind::Ordered)
+        .add_client_event::<DummyEvent>(Channel::Ordered)
         .finish();
     }
 
