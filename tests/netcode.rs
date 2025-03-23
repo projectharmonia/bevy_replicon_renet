@@ -165,8 +165,8 @@ fn setup(server_app: &mut App, client_app: &mut App) {
 fn setup_client(app: &mut App, client_id: u64, port: u16) {
     let channels = app.world().resource::<RepliconChannels>();
 
-    let server_channels_config = channels.get_server_configs();
-    let client_channels_config = channels.get_client_configs();
+    let server_channels_config = channels.server_configs();
+    let client_channels_config = channels.client_configs();
 
     let client = RenetClient::new(ConnectionConfig {
         server_channels_config,
@@ -181,8 +181,8 @@ fn setup_client(app: &mut App, client_id: u64, port: u16) {
 fn setup_server(app: &mut App, max_clients: usize) -> u16 {
     let channels = app.world().resource::<RepliconChannels>();
 
-    let server_channels_config = channels.get_server_configs();
-    let client_channels_config = channels.get_client_configs();
+    let server_channels_config = channels.server_configs();
+    let client_channels_config = channels.client_configs();
 
     let server = RenetServer::new(ConnectionConfig {
         server_channels_config,

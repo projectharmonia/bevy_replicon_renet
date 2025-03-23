@@ -76,8 +76,8 @@ fn read_cli(
         }
         Cli::Server { port } => {
             info!("starting server at port {port}");
-            let server_channels_config = channels.get_server_configs();
-            let client_channels_config = channels.get_client_configs();
+            let server_channels_config = channels.server_configs();
+            let client_channels_config = channels.client_configs();
 
             let server = RenetServer::new(ConnectionConfig {
                 server_channels_config,
@@ -116,8 +116,8 @@ fn read_cli(
         }
         Cli::Client { port, ip } => {
             info!("connecting to {ip}:{port}");
-            let server_channels_config = channels.get_server_configs();
-            let client_channels_config = channels.get_client_configs();
+            let server_channels_config = channels.server_configs();
+            let client_channels_config = channels.client_configs();
 
             let client = RenetClient::new(ConnectionConfig {
                 server_channels_config,

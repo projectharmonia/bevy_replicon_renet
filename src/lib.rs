@@ -61,8 +61,8 @@ use bevy_replicon_renet::{renet::ConnectionConfig, RenetChannelsExt};
 
 fn init(channels: Res<RepliconChannels>) {
     let connection_config = ConnectionConfig {
-        server_channels_config: channels.get_server_configs(),
-        client_channels_config: channels.get_client_configs(),
+        server_channels_config: channels.server_configs(),
+        client_channels_config: channels.client_configs(),
         ..Default::default()
     };
 
@@ -161,7 +161,7 @@ pub trait RenetChannelsExt {
     /// # let channels = RepliconChannels::default();
     /// # let registry = RemoteEventRegistry::default();
     /// fn init(channels: Res<RepliconChannels>, event_registry: Res<RemoteEventRegistry>) {
-    ///     let mut server_configs = channels.get_server_configs();
+    ///     let mut server_configs = channels.server_configs();
     ///     let fire_id = event_registry.server_channel::<Fire>().unwrap();
     ///     let fire_channel = &mut server_configs[fire_id];
     ///     fire_channel.max_memory_usage_bytes = 2048;
@@ -179,18 +179,18 @@ pub trait RenetChannelsExt {
     /// # use bevy_replicon::{prelude::*, shared::backend::replicon_channels::ReplicationChannel};
     /// # use bevy_replicon_renet::RenetChannelsExt;
     /// # let channels = RepliconChannels::default();
-    /// let mut server_configs = channels.get_server_configs();
+    /// let mut server_configs = channels.server_configs();
     /// let channel = &mut server_configs[ReplicationChannel::Updates as usize];
     /// channel.max_memory_usage_bytes = 4090;
     /// ```
-    fn get_server_configs(&self) -> Vec<ChannelConfig>;
+    fn server_configs(&self) -> Vec<ChannelConfig>;
 
-    /// Same as [`RenetChannelsExt::get_server_configs`], but for clients.
-    fn get_client_configs(&self) -> Vec<ChannelConfig>;
+    /// Same as [`RenetChannelsExt::server_configs`], but for clients.
+    fn client_configs(&self) -> Vec<ChannelConfig>;
 }
 
 impl RenetChannelsExt for RepliconChannels {
-    fn get_server_configs(&self) -> Vec<ChannelConfig> {
+    fn server_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.server_channels();
         if channels.len() > u8::MAX as usize {
             panic!("number of server channels shouldn't exceed `u8::MAX`");
@@ -199,7 +199,7 @@ impl RenetChannelsExt for RepliconChannels {
         create_configs(channels)
     }
 
-    fn get_client_configs(&self) -> Vec<ChannelConfig> {
+    fn client_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.client_channels();
         if channels.len() > u8::MAX as usize {
             panic!("number of client channels shouldn't exceed `u8::MAX`");

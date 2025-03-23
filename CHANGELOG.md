@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update to `bevy_replicon` 0.32.
+- Rename `RenetChannelsExt::get_server_configs` into `RenetChannelsExt::server_configs`.
+- Rename `RenetChannelsExt::get_client_configs` into `RenetChannelsExt::client_configs`.
 
 ## [0.8.0] - 2025-03-13
 
