@@ -193,7 +193,7 @@ impl RenetChannelsExt for RepliconChannels {
     fn server_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.server_channels();
         assert!(
-            channels.len() > u8::MAX as usize,
+            channels.len() <= u8::MAX as usize,
             "number of server channels shouldn't exceed `u8::MAX`"
         );
 
@@ -203,7 +203,7 @@ impl RenetChannelsExt for RepliconChannels {
     fn client_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.client_channels();
         assert!(
-            channels.len() > u8::MAX as usize,
+            channels.len() <= u8::MAX as usize,
             "number of client channels shouldn't exceed `u8::MAX`"
         );
 
