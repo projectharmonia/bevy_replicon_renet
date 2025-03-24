@@ -192,18 +192,20 @@ pub trait RenetChannelsExt {
 impl RenetChannelsExt for RepliconChannels {
     fn server_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.server_channels();
-        if channels.len() > u8::MAX as usize {
-            panic!("number of server channels shouldn't exceed `u8::MAX`");
-        }
+        assert!(
+            channels.len() > u8::MAX as usize,
+            "number of server channels shouldn't exceed `u8::MAX`"
+        );
 
         create_configs(channels)
     }
 
     fn client_configs(&self) -> Vec<ChannelConfig> {
         let channels = self.client_channels();
-        if channels.len() > u8::MAX as usize {
-            panic!("number of client channels shouldn't exceed `u8::MAX`");
-        }
+        assert!(
+            channels.len() > u8::MAX as usize,
+            "number of client channels shouldn't exceed `u8::MAX`"
+        );
 
         create_configs(channels)
     }
