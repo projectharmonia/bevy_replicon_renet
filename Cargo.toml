@@ -26,7 +26,7 @@ all-features = true
 
 [dependencies]
 bevy_replicon = { version = "0.33", default-features = false }
-bevy_renet = { git = "https://github.com/redjack96/renet", default-features = false }
+bevy_renet = { git = "https://github.com/lucaspoffo/renet", default-features = false }
 bevy = { version = "0.16", default-features = false, features = ["bevy_log"] }
 
 [dev-dependencies]
