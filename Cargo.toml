@@ -39,6 +39,7 @@ bevy = { version = "0.15", default-features = false, features = [
   "x11",
   "default_font",
 ] }
+test-log = "0.2"
 serde = "1.0"
 clap = { version = "4.1", features = ["derive"] }
 

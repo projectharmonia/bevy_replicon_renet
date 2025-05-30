@@ -14,6 +14,7 @@ use bevy_renet::{
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{RenetChannelsExt, RepliconRenetPlugins};
 use serde::{Deserialize, Serialize};
+use test_log::test;
 
 #[test]
 fn connect_disconnect() {
