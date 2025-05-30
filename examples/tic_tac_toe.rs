@@ -2,13 +2,16 @@
 //! Run it with `cargo run --example tic_tac_toe -- hotseat` to play locally or with `-- client` / `-- server`
 
 use std::{
-    error::Error,
     fmt::{self, Formatter},
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     time::SystemTime,
 };
 
-use bevy::{prelude::*, utils::hashbrown::HashMap};
+use bevy::{
+    ecs::{relationship::RelatedSpawner, spawn::SpawnWith},
+    platform::collections::HashMap,
+    prelude::*,
+};
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::{
     RenetChannelsExt, RepliconRenetPlugins,
@@ -39,53 +42,45 @@ fn main() {
                 ..Default::default()
             }),
             RepliconRenetPlugins,
-            TicTacToePlugin,
         ))
-        .run();
-}
-
-struct TicTacToePlugin;
-
-impl Plugin for TicTacToePlugin {
-    fn build(&self, app: &mut App) {
-        app.init_state::<GameState>()
-            .init_resource::<SymbolFont>()
-            .init_resource::<TurnSymbol>()
-            .replicate::<Symbol>()
-            .add_client_trigger::<CellPick>(Channel::Ordered)
-            .add_client_trigger::<MapCells>(Channel::Ordered)
-            .add_server_trigger::<MakeLocal>(Channel::Ordered)
-            .insert_resource(ClearColor(BACKGROUND_COLOR))
-            .add_observer(disconnect_by_client)
-            .add_observer(init_client)
-            .add_observer(make_local)
-            .add_observer(apply_pick)
-            .add_observer(init_symbols)
-            .add_observer(advance_turn)
-            .add_systems(Startup, (setup_ui, read_cli.map(Result::unwrap)))
-            .add_systems(
-                OnEnter(GameState::InGame),
-                (show_turn_text, show_turn_symbol),
-            )
-            .add_systems(OnEnter(GameState::Disconnected), show_disconnected_text)
-            .add_systems(OnEnter(GameState::Winner), show_winner_text)
-            .add_systems(OnEnter(GameState::Tie), show_tie_text)
-            .add_systems(OnEnter(GameState::Disconnected), stop_networking)
-            .add_systems(
-                Update,
+        .init_state::<GameState>()
+        .init_resource::<SymbolFont>()
+        .init_resource::<TurnSymbol>()
+        .replicate::<Symbol>()
+        .add_client_trigger::<CellPick>(Channel::Ordered)
+        .add_client_trigger::<MapCells>(Channel::Ordered)
+        .add_server_trigger::<MakeLocal>(Channel::Ordered)
+        .insert_resource(ClearColor(BACKGROUND_COLOR))
+        .add_observer(disconnect_by_client)
+        .add_observer(init_client)
+        .add_observer(make_local)
+        .add_observer(apply_pick)
+        .add_observer(init_symbols)
+        .add_observer(advance_turn)
+        .add_systems(Startup, (setup_ui, read_cli.map(Result::unwrap)))
+        .add_systems(
+            OnEnter(GameState::InGame),
+            (show_turn_text, show_turn_symbol),
+        )
+        .add_systems(OnEnter(GameState::Disconnected), show_disconnected_text)
+        .add_systems(OnEnter(GameState::Winner), show_winner_text)
+        .add_systems(OnEnter(GameState::Tie), show_tie_text)
+        .add_systems(OnEnter(GameState::Disconnected), stop_networking)
+        .add_systems(
+            Update,
+            (
+                show_connecting_text.run_if(resource_added::<RenetClient>),
+                show_waiting_client_text.run_if(resource_added::<RenetServer>),
+                client_start.run_if(client_just_connected),
                 (
-                    show_connecting_text.run_if(resource_added::<RenetClient>),
-                    show_waiting_client_text.run_if(resource_added::<RenetServer>),
-                    client_start.run_if(client_just_connected),
-                    (
-                        disconnect_by_server.run_if(client_just_disconnected),
-                        update_buttons_background.run_if(local_player_turn),
-                        show_turn_symbol.run_if(resource_changed::<TurnSymbol>),
-                    )
-                        .run_if(in_state(GameState::InGame)),
-                ),
-            );
-    }
+                    disconnect_by_server.run_if(client_just_disconnected),
+                    update_buttons_background.run_if(local_player_turn),
+                    show_turn_symbol.run_if(resource_changed::<TurnSymbol>),
+                )
+                    .run_if(in_state(GameState::InGame)),
+            ),
+        )
+        .run();
 }
 
 const GRID_SIZE: usize = 3;
@@ -102,11 +97,7 @@ const LINE_THICKNESS: f32 = 10.0;
 const BUTTON_SIZE: f32 = CELL_SIZE / 1.2;
 const BUTTON_MARGIN: f32 = (CELL_SIZE + LINE_THICKNESS - BUTTON_SIZE) / 2.0;
 
-fn read_cli(
-    mut commands: Commands,
-    cli: Res<Cli>,
-    channels: Res<RepliconChannels>,
-) -> Result<(), Box<dyn Error>> {
+fn read_cli(mut commands: Commands, cli: Res<Cli>, channels: Res<RepliconChannels>) -> Result<()> {
     const PROTOCOL_ID: u64 = 0;
 
     match *cli {
@@ -141,6 +132,7 @@ fn read_cli(
 
             commands.insert_resource(server);
             commands.insert_resource(transport);
+
             commands.spawn((LocalPlayer, symbol));
         }
         Cli::Client { port, ip } => {
@@ -215,64 +207,62 @@ fn setup_ui(mut commands: Commands, symbol_font: Res<SymbolFont>) {
     const TEXT_COLOR: Color = Color::srgb(0.5, 0.5, 1.0);
     const FONT_SIZE: f32 = 32.0;
 
-    commands
-        .spawn(Node {
+    commands.spawn((
+        Node {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..Default::default()
-        })
-        .with_children(|parent| {
-            parent
-                .spawn(Node {
-                    flex_direction: FlexDirection::Column,
-                    width: Val::Px(BOARD_SIZE - LINE_THICKNESS),
-                    height: Val::Px(BOARD_SIZE - LINE_THICKNESS),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent
-                        .spawn(Node {
-                            display: Display::Grid,
-                            grid_template_columns: vec![GridTrack::auto(); GRID_SIZE],
+        },
+        children![(
+            Node {
+                flex_direction: FlexDirection::Column,
+                width: Val::Px(BOARD_SIZE - LINE_THICKNESS),
+                height: Val::Px(BOARD_SIZE - LINE_THICKNESS),
+                ..Default::default()
+            },
+            children![
+                (
+                    Node {
+                        display: Display::Grid,
+                        grid_template_columns: vec![GridTrack::auto(); GRID_SIZE],
+                        ..Default::default()
+                    },
+                    Children::spawn(SpawnWith(|parent: &mut RelatedSpawner<_>| {
+                        for index in 0..GRID_SIZE * GRID_SIZE {
+                            parent.spawn(Cell { index }).observe(pick_cell);
+                        }
+                    }))
+                ),
+                (
+                    Node {
+                        margin: UiRect::top(Val::Px(20.0)),
+                        justify_content: JustifyContent::Center,
+                        ..Default::default()
+                    },
+                    children![(
+                        Text::default(),
+                        TextFont {
+                            font_size: FONT_SIZE,
                             ..Default::default()
-                        })
-                        .with_children(|parent| {
-                            for index in 0..GRID_SIZE * GRID_SIZE {
-                                parent.spawn(Cell { index }).observe(pick_cell);
-                            }
-                        });
-
-                    parent
-                        .spawn(Node {
-                            margin: UiRect::top(Val::Px(20.0)),
-                            justify_content: JustifyContent::Center,
-                            ..Default::default()
-                        })
-                        .with_children(|parent| {
-                            parent
-                                .spawn((
-                                    Text::default(),
-                                    TextFont {
-                                        font_size: FONT_SIZE,
-                                        ..Default::default()
-                                    },
-                                    TextColor(TEXT_COLOR),
-                                    BottomText,
-                                ))
-                                .with_child((
-                                    TextSpan::default(),
-                                    TextFont {
-                                        font: symbol_font.0.clone(),
-                                        font_size: FONT_SIZE,
-                                        ..Default::default()
-                                    },
-                                    TextColor(TEXT_COLOR),
-                                ));
-                        });
-                });
-        });
+                        },
+                        TextColor(TEXT_COLOR),
+                        BottomText,
+                        children![(
+                            TextSpan::default(),
+                            TextFont {
+                                font: symbol_font.0.clone(),
+                                font_size: FONT_SIZE,
+                                ..Default::default()
+                            },
+                            TextColor(TEXT_COLOR),
+                        )]
+                    )]
+                )
+            ]
+        )],
+    ));
 }
 
 /// Converts point clicks into cell picking events.
@@ -295,7 +285,7 @@ fn pick_cell(
     }
 
     let cell = cells
-        .get(trigger.entity())
+        .get(trigger.target())
         .expect("cells should have assigned indices");
     // We don't check if a cell can't be picked on client on purpose
     // just to demonstrate how server can receive invalid requests from a client.
@@ -345,25 +335,23 @@ fn init_symbols(
     symbol_font: Res<SymbolFont>,
     mut cells: Query<(&mut BackgroundColor, &Symbol), With<Button>>,
 ) {
-    let Ok((mut background, symbol)) = cells.get_mut(trigger.entity()) else {
+    let Ok((mut background, symbol)) = cells.get_mut(trigger.target()) else {
         return;
     };
     *background = BACKGROUND_COLOR.into();
 
     commands
-        .entity(trigger.entity())
+        .entity(trigger.target())
         .remove::<Interaction>()
-        .with_children(|parent| {
-            parent.spawn((
-                Text::new(symbol.glyph()),
-                TextFont {
-                    font: symbol_font.0.clone(),
-                    font_size: 65.0,
-                    ..Default::default()
-                },
-                TextColor(symbol.color()),
-            ));
-        });
+        .with_child((
+            Text::new(symbol.glyph()),
+            TextFont {
+                font: symbol_font.0.clone(),
+                font_size: 65.0,
+                ..Default::default()
+            },
+            TextColor(symbol.color()),
+        ));
 }
 
 /// Sends cell and local player entities and starts the game.
@@ -427,7 +415,7 @@ fn init_client(
 }
 
 fn make_local(trigger: Trigger<MakeLocal>, mut commands: Commands) {
-    commands.entity(trigger.entity()).insert(LocalPlayer);
+    commands.entity(trigger.target()).insert(LocalPlayer);
 }
 
 /// Sets the game in disconnected state if client closes the connection.
@@ -662,13 +650,13 @@ struct BottomText;
 #[require(
     Button,
     Replicated,
-    BackgroundColor(|| BackgroundColor(BACKGROUND_COLOR)),
-    Node(|| Node {
+    BackgroundColor(BACKGROUND_COLOR),
+    Node {
         width: Val::Px(BUTTON_SIZE),
         height: Val::Px(BUTTON_SIZE),
         margin: UiRect::all(Val::Px(BUTTON_MARGIN)),
         ..Default::default()
-    })
+    }
 )]
 struct Cell {
     index: usize,
