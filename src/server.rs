@@ -28,7 +28,7 @@ impl Plugin for RepliconRenetServerPlugin {
                 PreUpdate,
                 (
                     set_running.run_if(resource_added::<RenetServer>),
-                    (receive_packets, forward_server_events).run_if(resource_exists::<RenetServer>),
+                    (receive_packets, process_server_events).run_if(resource_exists::<RenetServer>),
                 )
                     .chain()
                     .in_set(ServerSet::ReceivePackets),
@@ -36,10 +36,13 @@ impl Plugin for RepliconRenetServerPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    set_stopped.run_if(resource_removed::<RenetServer>),
+                    set_stopped
+                        .before(ServerSet::Send)
+                        .run_if(resource_removed::<RenetServer>),
                     send_packets
                         .in_set(ServerSet::SendPackets)
                         .run_if(resource_exists::<RenetServer>),
+                    disconnect_by_request.after(RenetSend),
                 ),
             );
 
@@ -131,6 +134,19 @@ fn send_packets(
             .get(client_entity)
             .expect("messages should be sent only to connected clients");
         renet_server.send_message(network_id.get(), channel_id as u8, message)
+    }
+}
+
+fn disconnect_by_request(
+    mut commands: Commands,
+    mut disconnect_events: EventReader<DisconnectRequest>,
+) {
+    for event in disconnect_events.read() {
+        debug!(
+            "despawning client `{}` by disconnect request",
+            event.client_entity
+        );
+        commands.entity(event.client_entity).despawn();
     }
 }
 
