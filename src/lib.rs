@@ -176,11 +176,11 @@ pub trait RenetChannelsExt {
     ///
     /// ```
     /// # use bevy::prelude::*;
-    /// # use bevy_replicon::{prelude::*, shared::backend::replicon_channels::ReplicationChannel};
+    /// # use bevy_replicon::{prelude::*, shared::backend::replicon_channels::ServerChannel};
     /// # use bevy_replicon_renet::RenetChannelsExt;
     /// # let channels = RepliconChannels::default();
     /// let mut server_configs = channels.server_configs();
-    /// let channel = &mut server_configs[ReplicationChannel::Updates as usize];
+    /// let channel = &mut server_configs[ServerChannel::Updates as usize];
     /// channel.max_memory_usage_bytes = 4090;
     /// ```
     fn server_configs(&self) -> Vec<ChannelConfig>;
