@@ -2,7 +2,6 @@
 //! Also demonstrates the single-player and how sever also could be a player.
 
 use std::{
-    error::Error,
     hash::{DefaultHasher, Hash, Hasher},
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     time::SystemTime,
@@ -33,35 +32,19 @@ fn main() {
             focused_mode: Continuous,
             unfocused_mode: Continuous,
         })
-        .add_plugins((
-            DefaultPlugins,
-            RepliconPlugins,
-            RepliconRenetPlugins,
-            SimpleBoxPlugin,
-        ))
+        .add_plugins((DefaultPlugins, RepliconPlugins, RepliconRenetPlugins))
+        .replicate::<BoxPosition>()
+        .replicate::<PlayerBox>()
+        .add_client_trigger::<MoveBox>(Channel::Ordered)
+        .add_observer(spawn_clients)
+        .add_observer(despawn_clients)
+        .add_observer(apply_movement)
+        .add_systems(Startup, (read_cli.map(Result::unwrap), spawn_camera))
+        .add_systems(Update, (read_input, draw_boxes))
         .run();
 }
 
-struct SimpleBoxPlugin;
-
-impl Plugin for SimpleBoxPlugin {
-    fn build(&self, app: &mut App) {
-        app.replicate::<BoxPosition>()
-            .replicate::<PlayerBox>()
-            .add_client_trigger::<MoveBox>(Channel::Ordered)
-            .add_observer(spawn_clients)
-            .add_observer(despawn_clients)
-            .add_observer(apply_movement)
-            .add_systems(Startup, (read_cli.map(Result::unwrap), spawn_camera))
-            .add_systems(Update, (read_input, draw_boxes));
-    }
-}
-
-fn read_cli(
-    mut commands: Commands,
-    cli: Res<Cli>,
-    channels: Res<RepliconChannels>,
-) -> Result<(), Box<dyn Error>> {
+fn read_cli(mut commands: Commands, cli: Res<Cli>, channels: Res<RepliconChannels>) -> Result<()> {
     const PROTOCOL_ID: u64 = 0;
 
     match *cli {
@@ -162,7 +145,7 @@ fn spawn_camera(mut commands: Commands) {
 fn spawn_clients(trigger: Trigger<OnAdd, ConnectedClient>, mut commands: Commands) {
     // Hash index to generate visually distinctive color.
     let mut hasher = DefaultHasher::new();
-    trigger.entity().index().hash(&mut hasher);
+    trigger.target().index().hash(&mut hasher);
     let hash = hasher.finish();
 
     // Use the lower 24 bits.
@@ -172,12 +155,12 @@ fn spawn_clients(trigger: Trigger<OnAdd, ConnectedClient>, mut commands: Command
     let b = (hash & 0xFF) as f32 / 255.0;
 
     // Generate pseudo random color from client entity.
-    info!("spawning box for `{}`", trigger.entity());
+    info!("spawning box for `{}`", trigger.target());
     commands.spawn((
         PlayerBox {
             color: Color::srgb(r, g, b),
         },
-        BoxOwner(trigger.entity()),
+        BoxOwner(trigger.target()),
     ));
 }
 
@@ -189,7 +172,7 @@ fn despawn_clients(
 ) {
     let (entity, _) = boxes
         .iter()
-        .find(|&(_, owner)| **owner == trigger.entity())
+        .find(|&(_, owner)| **owner == trigger.target())
         .expect("all clients should have entities");
     commands.entity(entity).despawn();
 }
