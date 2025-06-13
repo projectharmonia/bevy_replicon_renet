@@ -20,8 +20,6 @@ impl Plugin for RepliconRenetClientPlugin {
             .add_systems(
                 PreUpdate,
                 (
-                    set_connecting.run_if(bevy_renet::client_connecting),
-                    set_disconnected.run_if(bevy_renet::client_just_disconnected),
                     set_connected.run_if(bevy_renet::client_just_connected),
                     receive_packets.run_if(bevy_renet::client_connected),
                 )
@@ -30,9 +28,16 @@ impl Plugin for RepliconRenetClientPlugin {
             )
             .add_systems(
                 PostUpdate,
-                send_packets
-                    .in_set(ClientSet::SendPackets)
-                    .run_if(bevy_renet::client_connected),
+                (
+                    (
+                        set_connecting.run_if(bevy_renet::client_connecting),
+                        set_disconnected.run_if(bevy_renet::client_just_disconnected),
+                    )
+                        .before(ClientSet::Send),
+                    send_packets
+                        .in_set(ClientSet::SendPackets)
+                        .run_if(bevy_renet::client_connected),
+                ),
             );
 
         #[cfg(feature = "renet_netcode")]

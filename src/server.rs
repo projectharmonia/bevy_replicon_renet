@@ -23,11 +23,12 @@ impl Plugin for RepliconRenetServerPlugin {
         app.add_plugins(RenetServerPlugin)
             .configure_sets(PreUpdate, ServerSet::ReceivePackets.after(RenetReceive))
             .configure_sets(PostUpdate, ServerSet::SendPackets.before(RenetSend))
+            .add_observer(disconnect_client)
             .add_systems(
                 PreUpdate,
                 (
                     set_running.run_if(resource_added::<RenetServer>),
-                    (receive_packets, forward_server_events).run_if(resource_exists::<RenetServer>),
+                    (receive_packets, process_server_events).run_if(resource_exists::<RenetServer>),
                 )
                     .chain()
                     .in_set(ServerSet::ReceivePackets),
@@ -35,10 +36,13 @@ impl Plugin for RepliconRenetServerPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    set_stopped.run_if(resource_removed::<RenetServer>),
+                    set_stopped
+                        .before(ServerSet::Send)
+                        .run_if(resource_removed::<RenetServer>),
                     send_packets
                         .in_set(ServerSet::SendPackets)
                         .run_if(resource_exists::<RenetServer>),
+                    disconnect_by_request.after(RenetSend),
                 ),
             );
 
@@ -57,7 +61,7 @@ fn set_stopped(mut server: ResMut<RepliconServer>) {
     server.set_running(false);
 }
 
-fn forward_server_events(
+fn process_server_events(
     mut commands: Commands,
     mut server_events: EventReader<ServerEvent>,
     network_map: Res<NetworkIdMap>,
@@ -75,16 +79,15 @@ fn forward_server_events(
                         network_id,
                     ))
                     .id();
-                debug!("connecting `{client_entity}` with `{network_id:?}`");
+                debug!("spawning client `{client_entity}` with `{network_id:?}`");
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 let network_id = NetworkId::new(*client_id);
-                let client_entity = *network_map
-                    .get(&network_id)
-                    .expect("clients should be connected before disconnection");
-
-                commands.entity(client_entity).despawn();
-                debug!("disconnecting `{client_entity}` with `{network_id:?}`: {reason}");
+                if let Some(&client_entity) = network_map.get(&network_id) {
+                    // Entity could have been despawned by user.
+                    commands.entity(client_entity).despawn();
+                    debug!("despawning client `{client_entity}` with `{network_id:?}`: {reason}");
+                }
             }
         }
     }
@@ -131,5 +134,33 @@ fn send_packets(
             .get(client_entity)
             .expect("messages should be sent only to connected clients");
         renet_server.send_message(network_id.get(), channel_id as u8, message)
+    }
+}
+
+fn disconnect_by_request(
+    mut commands: Commands,
+    mut disconnect_events: EventReader<DisconnectRequest>,
+) {
+    for event in disconnect_events.read() {
+        debug!(
+            "despawning client `{}` by disconnect request",
+            event.client_entity
+        );
+        commands.entity(event.client_entity).despawn();
+    }
+}
+
+fn disconnect_client(
+    trigger: Trigger<OnRemove, ConnectedClient>,
+    server: Option<ResMut<RenetServer>>,
+    clients: Query<&NetworkId>,
+) {
+    if let Some(mut server) = server {
+        debug!("disconnecting despawned client `{}`", trigger.target());
+
+        let network_id = clients
+            .get(trigger.target())
+            .expect("inserted on connection");
+        server.disconnect(network_id.get());
     }
 }
